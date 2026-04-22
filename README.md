@@ -13,8 +13,8 @@ IoT-Demostadt mit ESP32, MQTT, Spring Boot, Vue und Live-Steuerung ueber das Web
 [![Data: MariaDB 11.8, Docker](https://img.shields.io/badge/Data-MariaDB%2011.8%20%7C%20Docker-003545?style=for-the-badge&logo=mariadb&logoColor=white)](#techstack)
 [![Firmware: Arduino, ESP32](https://img.shields.io/badge/Firmware-Arduino%20%7C%20ESP32-00979D?style=for-the-badge&logo=arduino&logoColor=white)](#techstack)
 
-[![Open Issues](https://img.shields.io/github/issues/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/issues)
-[![Closed Issues](https://img.shields.io/github/issues-closed/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/issues?q=is%3Aissue+is%3Aclosed)
+[![Total Commits](https://img.shields.io/github/commit-activity/t/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/commits)
+[![Branches](https://img.shields.io/github/branches/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/branches)
 [![Last Commit](https://img.shields.io/github/last-commit/fes-wiesbaden/iot-smartown-gruppe-1/main?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/commits/main)
 [![Stars](https://img.shields.io/github/stars/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/stargazers)
 [![Forks](https://img.shields.io/github/forks/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/network/members)
