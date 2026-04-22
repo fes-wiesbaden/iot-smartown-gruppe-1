@@ -19,7 +19,7 @@ IoT-Demostadt mit ESP32, MQTT, Spring Boot, Vue und Live-Steuerung ueber das Web
 [![Stars](https://img.shields.io/github/stars/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/stargazers)
 [![Forks](https://img.shields.io/github/forks/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/network/members)
 
-[Überblick](#überblick) • [Anforderungen](#anforderungen) • [Zeitraum](#zeitraum) • [Netzwerk](#netzwerk) • [Techstack](#techstack) • [Lokale Entwicklung](#lokale-entwicklung) • [Vorhandene Hardware](#vorhandene-hardware) • [Muss-Funktionen](#muss-funktionen) • [Kann-Funktionen](#kann-funktionen-optional-wenn-zeit-reicht) • [Meilensteine](#meilensteine) • [Architektur](#architektur-grob) • [Entwicklungsworkflow](#entwicklungsworkflow) • [Entwicklungsregeln Git](#entwicklungsregeln-git) • [Datenfluss](#datenfluss)
+[Überblick](#überblick) • [Anforderungen](#anforderungen) • [Netzwerk](#netzwerk) • [Lokale Entwicklung](#lokale-entwicklung) • [Vorhandene Hardware](#vorhandene-hardware) • [Muss-Funktionen](#muss-funktionen) • [Meilensteine](#meilensteine) • [Architektur](#architektur-grob) • [Entwicklungsworkflow](#entwicklungsworkflow) • [Entwicklungsregeln Git](#entwicklungsregeln-git) • [Datenfluss](#datenfluss)
 
 </div>
 
@@ -34,29 +34,10 @@ Miniatur-"Smarte Stadt" als IoT-Demomodell. Mehrere Bereiche sind mit Sensoren u
 - Speicherung der Daten in einer MariaDB-Datenbank
 - Visualisierung und Interaktion im Browser
 
-## Zeitraum
-| Start | Ende |
-|---|---|
-| 22.01.2026 | 06.05.2026 |
-
 ## Netzwerk
 | Gerät | IP-Adresse | Subnetzmaske | Gateway | DNS |
 |---|---|---|---|---|
 | Raspberry Pi | 10.93.128.204 | 255.255.240.0 | 10.93.128.1 | 10.93.128.1 |
-
-## Techstack
-- Java 21
-- Spring Boot 3.5.x
-- Vue 3
-- Vite
-- TypeScript
-- Tailwind CSS
-- Docker
-- MQTT 3.1.1
-- MariaDB
-- WebSocket
-- REST-API
-- Arduino für ESP32-Firmware
 
 ## Lokale Entwicklung
 
@@ -65,12 +46,6 @@ Miniatur-"Smarte Stadt" als IoT-Demomodell. Mehrere Bereiche sind mit Sensoren u
 - Docker mit Docker Compose
 - Java 21
 - Node.js 20.19 oder 22.12+
-
-Falls Docker ohne `sudo` nicht funktioniert:
-
-```bash
-sudo usermod -aG docker $USER
-```
 
 Danach abmelden und neu anmelden. Die `docker`-Gruppe hat weitreichende Rechte, deshalb nur eigene Entwickler-Accounts hinzufügen.
 
@@ -82,7 +57,7 @@ cd iot-smartown-gruppe-1
 cp .env.example .env
 ```
 
-Die Datei `.env` enthält lokale Zugangsdaten und wird nicht committet. Bei Port-Konflikten `MARIADB_PORT` oder `BACKEND_PORT` in `.env` ändern.
+Die Datei `.env` enthält lokale Zugangsdaten und wird nicht committet. Bei Port-Konflikten `MARIADB_PORT` oder `APP_PORT` in `.env` ändern.
 
 ### Lokale Entwicklung starten
 
@@ -122,10 +97,11 @@ URLs:
 | Backend | http://localhost:8080 |
 | Backend Healthcheck | http://localhost:8080/actuator/health |
 | Swagger UI | http://localhost:8080/swagger-ui.html |
+| Docker-App | http://localhost:8081 |
 
 ### Gesamte App per Docker starten
 
-Für Demo oder finalen Betrieb werden Frontend und Backend zusammen in einem App-Container gebaut. MariaDB läuft in einem zweiten Container.
+Für Demo oder finalen Betrieb werden Frontend und Backend zusammen im Compose-Service `app` gebaut. MariaDB läuft im zweiten Service `mariadb`.
 
 ```bash
 docker compose up --build
@@ -134,7 +110,7 @@ docker compose up --build
 Danach läuft die App unter:
 
 ```text
-http://localhost:8080
+http://localhost:8081
 ```
 
 ### Datenbank zurücksetzen
@@ -182,14 +158,6 @@ docker compose down -v
 - Automatisch abhängig von Helligkeit (dunkel = an, hell = aus)
 - Zusätzlich manuell über das Frontend schaltbar
 - (Schwellwert über das Frontend einstellbar, finaler Wert wird im Projektverlauf ermittelt)
-
-## Kann-Funktionen (optional, wenn Zeit reicht)
-- **Mautstation:** Gewicht erfassen, Preis nach Gewicht berechnen, Anzeige im Frontend (optional Speicherung als Verlauf)
-- **Bombenwarnsystem (Simulation):** Warn-Event schaltet rote Warnlichter (optional akustisches Signal), Ereignis im Frontend sichtbar/logbar
-- **Ampelsystem**
-- **Zugübergang** mit Schranken
-- **Windräder** als "Energie-Event" für Laternen
-- **Baustellenbezirk** mit Zutrittswarnung
 
 ## Meilensteine
 1. **Anforderungsanalyse** – Muss-/Kann-Funktionen, Backlog & Grobkonzept (Sensorik/Aktorik, Datenfluss, UI)
