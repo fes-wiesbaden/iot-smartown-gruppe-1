@@ -1,3 +1,7 @@
 .codex/
 lessons.md
 .idea/
+*.iml
+.env
+.env.*
+!.env.example
