@@ -57,7 +57,7 @@ cd iot-smartown-gruppe-1
 cp .env.example .env
 ```
 
-Die Datei `.env` enthält lokale Zugangsdaten und wird nicht committet. Vor dem Docker-Start `MQTT_PASSWORD` ändern. Bei Port-Konflikten `MARIADB_PORT`, `MQTT_PORT`, `BACKEND_PORT` oder `APP_PORT` in `.env` ändern.
+Die Datei `.env` enthält lokale Zugangsdaten und wird nicht committet. Vor dem Docker-Start `MQTT_PASSWORD` ändern. Bei Port-Konflikten `MARIADB_PORT`, `MQTT_PORT`, `BACKEND_PORT` oder `FRONTEND_PORT` in `.env` ändern.
 
 ### Lokale Entwicklung starten
 
@@ -97,12 +97,12 @@ URLs:
 | Backend | http://localhost:8080 |
 | Backend Healthcheck | http://localhost:8080/actuator/health |
 | Swagger UI | http://localhost:8080/swagger-ui.html |
-| Docker-App | http://localhost:8081 |
+| Docker-Frontend | http://localhost:8081 |
 | MQTT Broker | localhost:1883 |
 
 ### Gesamte App per Docker starten
 
-Für Demo oder finalen Betrieb baut Compose die eigenen Images und erzwingt per Healthchecks die Startreihenfolge: MQTT-Broker, MariaDB, Backend, Frontend. MariaDB nutzt das offizielle Image.
+Für Demo oder finalen Betrieb laufen vier Container: MQTT-Broker, MariaDB, Backend und Frontend. Compose baut MQTT, Backend und Frontend selbst. MariaDB nutzt das offizielle Image. Healthchecks erzwingen die Startreihenfolge: MQTT-Broker, MariaDB, Backend, Frontend.
 
 ```bash
 docker compose up --build
@@ -175,7 +175,7 @@ docker compose down -v
 |---|---|
 | Hardware | ESP32, Sensoren wie BH1750 und Ultraschall, Aktoren wie Stepper, Relais und LEDs |
 | Firmware | Arduino-basierte ESP32-Firmware, liest Sensoren ein, empfängt Befehle per MQTT und setzt Aktoren um |
-| Raspberry Pi | Zentrale Plattform für den Finalbetrieb mit Docker: Anwendung mit Spring Boot Backend und Vue-Frontend, MariaDB sowie später MQTT-Broker |
+| Raspberry Pi | Zentrale Plattform für den Finalbetrieb mit Docker: MQTT-Broker, MariaDB, Spring Boot Backend und Vue-/Nginx-Frontend |
 | Backend | REST-API für Steuerbefehle, MQTT-Subscriber/Publisher, Entscheidungslogik, Speicherung in MariaDB, Weitergabe von Live-Daten per WebSocket |
 | Frontend | Vue-Dashboard für Live-Status, Schalter und Parametrierung wie Schwellwerte |
 | Datenbank | MariaDB zur Speicherung von Zuständen, Konfiguration und optional später Historien |
@@ -185,7 +185,7 @@ docker compose down -v
 2. Hardwaretests laufen direkt per USB-C/USB am Laptop. Sensorik, Aktorik, Flashen und serielle Logs werden lokal getestet. Solange nur die serielle Verbindung genutzt wird, spielen statische IP-Adressen keine Rolle.
 3. Backend, Frontend und Datenbank werden zunächst lokal mit Mock-Daten oder einem kleinen Simulator für Sensorwerte entwickelt.
 4. In der Integrationsphase werden Firmware, MQTT, REST, WebSocket und Hardware schrittweise zusammengeführt. Erst ab der Netzwerkintegration von ESP32 und Raspberry Pi sind statische IP-Adressen relevant.
-5. Im Finalbetrieb läuft die Anwendung dann auf dem Raspberry Pi mit Docker: ein App-Container für Backend und Frontend, ein MariaDB-Container und später ein MQTT-Broker.
+5. Im Finalbetrieb läuft die Anwendung dann auf dem Raspberry Pi mit Docker: vier Container für MQTT-Broker, MariaDB, Backend und Frontend.
 
 ## Entwicklungsregeln Git
 1. Es gibt die Branches `main` und `dev`.
