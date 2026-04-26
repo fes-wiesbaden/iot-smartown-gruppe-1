@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 import type { LanternMode } from '@/types/lanterns'
 
 /**
@@ -23,23 +21,9 @@ const emit = defineEmits<{
  */
 const modes: Array<{ value: LanternMode; label: string; description: string }> = [
   { value: 'AUTO', label: 'Auto', description: 'BH1750 steuert die Laternen automatisch.' },
-  { value: 'ON', label: 'Ein', description: 'Laternen bleiben manuell eingeschaltet.' },
-  { value: 'OFF', label: 'Aus', description: 'Laternen bleiben manuell ausgeschaltet.' },
+  { value: 'FORCED_ON', label: 'Ein', description: 'Laternen bleiben manuell eingeschaltet.' },
+  { value: 'FORCED_OFF', label: 'Aus', description: 'Laternen bleiben manuell ausgeschaltet.' },
 ]
-
-/**
- * Formatiert den aktiven Modus fuer das Kopf-Badge lesbar.
- */
-const currentModeLabel = computed(() => {
-  if (props.currentMode === null) {
-    return 'unbekannt'
-  }
-  if (props.currentMode === 'AUTO') {
-    return 'Auto'
-  }
-
-  return props.currentMode === 'ON' ? 'An' : 'Aus'
-})
 </script>
 
 <template>
@@ -49,7 +33,7 @@ const currentModeLabel = computed(() => {
         <p class="controls__eyebrow">Steuerung</p>
         <h2 id="lantern-controls-title" class="controls__title">Laternenmodus</h2>
       </div>
-      <span class="controls__mode">{{ currentModeLabel }}</span>
+      <span class="controls__mode">{{ currentMode ?? 'unbekannt' }}</span>
     </div>
 
     <div class="controls__buttons">

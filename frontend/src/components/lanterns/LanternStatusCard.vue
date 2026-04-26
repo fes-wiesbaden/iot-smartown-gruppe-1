@@ -14,22 +14,6 @@ const props = defineProps<{
 }>()
 
 /**
- * Macht den technischen Modus im UI lesbar.
- */
-const modeLabel = computed(() => {
-  const mode = props.snapshot?.state.mode
-  if (!mode) {
-    return '-'
-  }
-
-  if (mode === 'AUTO') {
-    return 'Auto'
-  }
-
-  return mode === 'ON' ? 'An' : 'Aus'
-})
-
-/**
  * Formatiert den Online-Status des ESP32 fuer die Oberflaeche.
  */
 const onlineLabel = computed(() => {
@@ -73,7 +57,7 @@ const thresholdLabel = computed(() => {
     <div class="status-card__header">
       <div>
         <p class="status-card__eyebrow">Laternen</p>
-        <h2 id="lantern-status-title" class="status-card__title">MQTT Status</h2>
+        <h2 id="lantern-status-title" class="status-card__title">MQTT-MVP Status</h2>
       </div>
       <div class="status-card__badges">
         <span class="status-card__badge" :class="{ 'status-card__badge--online': brokerConnected }">
@@ -91,7 +75,7 @@ const thresholdLabel = computed(() => {
     <div v-if="snapshot" class="status-card__grid">
       <article class="status-card__item">
         <span class="status-card__label">Modus</span>
-        <strong class="status-card__value">{{ modeLabel }}</strong>
+        <strong class="status-card__value">{{ snapshot.state.mode }}</strong>
       </article>
       <article class="status-card__item">
         <span class="status-card__label">Licht</span>
