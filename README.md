@@ -26,38 +26,17 @@ IoT-Demostadt mit ESP32, MQTT, Spring Boot, Vue und Live-Steuerung ueber das Web
 ## Überblick
 Miniatur-"Smarte Stadt" als IoT-Demomodell. Mehrere Bereiche sind mit Sensoren und Aktoren ausgestattet und werden über eine Weboberfläche überwacht und gesteuert. Ereignisse lösen automatisierte Abläufe aus, einige Funktionen sind zusätzlich manuell schaltbar. Module sind einzeln testbar und laufen am Ende als Gesamtsystem in einer Live-Demo. Das Projekt soll mit Scrum bearbeitet werden.
 
-## Anforderungen
-
-- Erfassung von Sensordaten über Mikrocontroller und Sensoren
-- Nutzung eines MQTT-Brokers zur Datenübertragung
-- Verarbeitung der Sensordaten mit einer eigenen oder angepassten Anwendung
-- Speicherung der Daten in einer MariaDB-Datenbank
-- Visualisierung und Interaktion im Browser
-
-## Netzwerk
-Statische Adressen fuer das Projekt:
-
-| Geraet | IP-Adresse | Hinweis |
-|---|---|---|
-| Raspberry Pi | 10.93.128.204 | Docker-Host, MQTT-Broker, Backend, Frontend, MariaDB |
-| Reserve | 10.93.128.205 | frei fuer ESP32 oder weiteres Geraet |
-| Reserve | 10.93.128.206 | frei fuer ESP32 oder weiteres Geraet |
-| Reserve | 10.93.128.207 | frei fuer ESP32 oder weiteres Geraet |
-| Reserve | 10.93.128.208 | frei fuer ESP32 oder weiteres Geraet |
-
-Feste Netzparameter fuer alle statischen Geraete:
-
-| Parameter | Wert |
-|---|---|
-| Subnetzmaske | 255.255.240.0 |
-| Gateway | 10.93.128.1 |
-| DNS | 10.93.128.1 |
-
-## Lokale Entwicklung
+## Nachbauen
 
 ### Voraussetzungen
+
+Nachbauen nur mit Docker:
+
 - Git
 - Docker mit Docker Compose
+
+Für lokale Entwicklung ohne Backend-/Frontend-Container zusaetzlich:
+
 - Java 21
 - Node.js 20.19 oder 22.12+
 
@@ -75,10 +54,10 @@ Die Datei `.env` enthält lokale Zugangsdaten und wird nicht committet. Vor dem 
 
 ### Lokale Entwicklung starten
 
-MariaDB läuft lokal per Docker:
+MQTT-Broker und MariaDB laufen lokal per Docker:
 
 ```bash
-docker compose up -d mariadb
+docker compose up -d mqtt mariadb
 ```
 
 Backend lokal starten:
@@ -118,8 +97,11 @@ URLs bei lokaler Entwicklung:
 
 Für Demo oder finalen Betrieb laufen vier Container: MQTT-Broker, MariaDB, Backend und Frontend. Compose baut MQTT, Backend und Frontend selbst. MariaDB nutzt das offizielle Image. Healthchecks erzwingen die Startreihenfolge: MQTT-Broker, MariaDB, Backend, Frontend.
 
+**Alle Ports müssen frei sein!**
+
+Ports: **1883; 3306; 8080; 8081;**
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 URLs bei Docker Compose:
@@ -133,15 +115,41 @@ URLs bei Docker Compose:
 | MQTT Broker | localhost:1883 |
 | MariaDB | localhost:3306 |
 
-Wenn Backend oder MariaDB lokal und per Docker gleichzeitig laufen sollen, `BACKEND_PORT` oder `MARIADB_PORT` in `.env` ändern.
+### Lokale Compose-Umgebung vollständig löschen
 
-### Datenbank zurücksetzen
-
-Nur ausführen, wenn lokale Daten gelöscht werden dürfen:
-
+Nur ausführen, wenn alle lokalen Docker-Compose-Daten und Images dieses Projekts gelöscht werden dürfen.
 ```bash
-docker compose down -v
+docker compose down -v --rmi all 
 ```
+
+## Anforderungen
+
+- Erfassung von Sensordaten über Mikrocontroller und Sensoren
+- Nutzung eines MQTT-Brokers zur Datenübertragung
+- Verarbeitung der Sensordaten mit einer eigenen oder angepassten Anwendung
+- Speicherung der Daten in einer MariaDB-Datenbank
+- Visualisierung und Interaktion im Browser
+
+## Netzwerk
+Statische Adressen fuer das Projekt:
+
+| Geraet | IP-Adresse | Hinweis |
+|---|---|---|
+| Raspberry Pi | 10.93.128.204 | Docker-Host, MQTT-Broker, Backend, Frontend, MariaDB |
+| Reserve | 10.93.128.205 | frei fuer ESP32 oder weiteres Geraet |
+| Reserve | 10.93.128.206 | frei fuer ESP32 oder weiteres Geraet |
+| Reserve | 10.93.128.207 | frei fuer ESP32 oder weiteres Geraet |
+| Reserve | 10.93.128.208 | frei fuer ESP32 oder weiteres Geraet |
+
+Feste Netzparameter fuer alle statischen Geraete:
+
+| Parameter | Wert |
+|---|---|
+| Subnetzmaske | 255.255.240.0 |
+| Gateway | 10.93.128.1 |
+| DNS | 10.93.128.1 |
+
+
 
 ## Vorhandene Hardware
 - 3x DC 5V Stepper Motor 28BYJ-48 mit Treiberboard
@@ -159,11 +167,6 @@ docker compose down -v
 - 1x BH1750
 
 ## Muss-Funktionen
-
-### Skilift
-- Über das Frontend ein-/ausschaltbar
-- Statusanzeige (oben / unten)
-- Step Motor DC Motor, welcher durchgängig schnur zieht und Skilift herumschiebt.
 
 ### Brücke
 - **Sensor 1 (vor der Brücke):** erkennt anfahrendes Boot → Brücke fährt hoch
