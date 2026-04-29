@@ -4,9 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "mqtt")
 /**
- * Bindet die allgemeinen MQTT-Verbindungsdaten aus der Spring-Konfiguration.
+ * Bindet die MQTT-Verbindungsdaten aus der Spring-Konfiguration.
  */
-public class MqttProperties {
+public class LanternMqttProperties {
 
     private String brokerUrl;
     private String username = "";
