@@ -5,7 +5,6 @@ defineProps<{
   snapshot: BridgeSnapshot | null
   loading: boolean
   error: string | null
-  brokerConnected: boolean
   bridgeOnline: boolean
 }>()
 </script>
@@ -15,22 +14,14 @@ defineProps<{
     <div class="status-card__header">
       <div>
         <p class="status-card__eyebrow">Brücke</p>
-        <h2 id="bridge-status-title" class="status-card__title">MQTT Status</h2>
+        <h2 id="bridge-status-title" class="status-card__title">Brückenstatus</h2>
       </div>
-      <div v-if="loading" class="status-card__badge status-card__badge--loading">Lädt...</div>
+      <div v-if="loading" class="status-card__badge status-card__badge--loading">Lädt…</div>
       <div v-else-if="error" class="status-card__badge status-card__badge--error">Fehler</div>
       <div v-else class="status-card__badge status-card__badge--success">Aktiv</div>
     </div>
 
     <dl class="status-list">
-      <div class="status-list__item">
-        <dt class="status-list__term">MQTT Broker</dt>
-        <dd class="status-list__value">
-          <span class="status-indicator" :class="brokerConnected ? 'status-indicator--on' : 'status-indicator--off'"></span>
-          {{ brokerConnected ? 'Verbunden' : 'Getrennt' }}
-        </dd>
-      </div>
-
       <div class="status-list__item">
         <dt class="status-list__term">Brücke (ESP32)</dt>
         <dd class="status-list__value">
@@ -153,10 +144,10 @@ defineProps<{
 }
 
 .status-indicator--on {
-  background: var(--theme-accent);
+  background: #16a34a;
 }
 
 .status-indicator--off {
-  background: #d8dfe2;
+  background: #dc2626;
 }
 </style>

@@ -7,7 +7,6 @@ import type { LanternSnapshot } from '@/types/lanterns'
  * Enthalten den letzten Snapshot plus Lade- und Fehlerzustand fuer die Statuskarte.
  */
 const props = defineProps<{
-  brokerConnected: boolean
   error: string | null
   loading: boolean
   snapshot: LanternSnapshot | null
@@ -27,17 +26,6 @@ const modeLabel = computed(() => {
   }
 
   return mode === 'ON' ? 'An' : 'Aus'
-})
-
-/**
- * Formatiert den Online-Status des ESP32 fuer die Oberflaeche.
- */
-const onlineLabel = computed(() => {
-  if (!props.snapshot) {
-    return 'Warte auf Daten'
-  }
-
-  return props.snapshot.state.online ? 'ESP32 online' : 'ESP32 offline'
 })
 
 /**
@@ -73,15 +61,7 @@ const thresholdLabel = computed(() => {
     <div class="status-card__header">
       <div>
         <p class="status-card__eyebrow">Laternen</p>
-        <h2 id="lantern-status-title" class="status-card__title">MQTT Status</h2>
-      </div>
-      <div class="status-card__badges">
-        <span class="status-card__badge" :class="{ 'status-card__badge--online': brokerConnected }">
-          {{ brokerConnected ? 'Broker verbunden' : 'Broker getrennt' }}
-        </span>
-        <span class="status-card__badge" :class="{ 'status-card__badge--online': snapshot?.state.online }">
-          {{ onlineLabel }}
-        </span>
+        <h2 id="lantern-status-title" class="status-card__title">Laternenstatus</h2>
       </div>
     </div>
 
@@ -150,29 +130,6 @@ const thresholdLabel = computed(() => {
   font-weight: 800;
 }
 
-.status-card__badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.status-card__badge {
-  border: 1px solid #d8dfe2;
-  border-radius: 999px;
-  padding: 6px 10px;
-  color: var(--theme-muted);
-  background: #f5f7f8;
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.status-card__badge--online {
-  border-color: var(--theme-accent-border);
-  color: var(--theme-accent-strong);
-  background: var(--theme-accent-soft);
-}
-
 .status-card__notice {
   margin: 0;
   color: var(--theme-muted);
@@ -214,10 +171,6 @@ const thresholdLabel = computed(() => {
 @media (max-width: 840px) {
   .status-card__header {
     flex-direction: column;
-  }
-
-  .status-card__badges {
-    justify-content: flex-start;
   }
 
   .status-card__grid {

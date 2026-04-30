@@ -45,7 +45,9 @@ const currentModeLabel = computed(() => {
 /**
  * Sperrt die Steuerung bei ausstehendem Request oder fehlender Broker-/ESP32-Verbindung.
  */
-const buttonsDisabled = computed(() => props.submittingMode !== null || !props.controlsEnabled)
+const requestPending = computed(() => props.submittingMode !== null)
+const controlsBlocked = computed(() => !props.controlsEnabled)
+const buttonsDisabled = computed(() => requestPending.value || controlsBlocked.value)
 </script>
 
 <template>
@@ -69,6 +71,8 @@ const buttonsDisabled = computed(() => props.submittingMode !== null || !props.c
         class="controls__button"
         :class="{
           'controls__button--active': currentMode === mode.value,
+          'controls__button--blocked': controlsBlocked,
+          'controls__button--busy': requestPending,
           'controls__button--pending': submittingMode === mode.value,
         }"
         type="button"
@@ -152,8 +156,15 @@ const buttonsDisabled = computed(() => props.submittingMode !== null || !props.c
 }
 
 .controls__button:disabled {
-  cursor: wait;
   opacity: 0.75;
+}
+
+.controls__button--blocked:disabled {
+  cursor: not-allowed;
+}
+
+.controls__button--busy:disabled {
+  cursor: wait;
 }
 
 .controls__button--active {
