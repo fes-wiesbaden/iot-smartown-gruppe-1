@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LanternStateService {
 
     static final Duration DEVICE_OFFLINE_TIMEOUT = Duration.ofSeconds(30);
-    static final double DEFAULT_THRESHOLD_LUX = 50.0;
 
     private final LanternRealtimeService lanternRealtimeService;
     private final AtomicReference<LanternSnapshot> snapshotReference = new AtomicReference<>(defaultSnapshot());
@@ -50,9 +49,8 @@ public class LanternStateService {
         Objects.requireNonNull(statePayload, "statePayload");
         Objects.requireNonNull(receivedAt, "receivedAt");
         lastDeviceMessageAt.set(receivedAt);
-        LanternStatePayload onlineState = withOnline(statePayload, isDeviceOnlineAt(receivedAt));
         return updateSnapshot(previous -> new LanternSnapshot(
-                onlineState,
+                statePayload,
                 previous.lastEvent(),
                 previous.brokerConnected(),
                 receivedAt
@@ -71,7 +69,7 @@ public class LanternStateService {
         Objects.requireNonNull(receivedAt, "receivedAt");
         lastDeviceMessageAt.set(receivedAt);
         return updateSnapshot(previous -> new LanternSnapshot(
-                withOnline(previous.state(), isDeviceOnlineAt(receivedAt)),
+                previous.state(),
                 eventPayload,
                 previous.brokerConnected(),
                 receivedAt
@@ -82,12 +80,11 @@ public class LanternStateService {
      * Markiert, ob das Backend aktuell mit dem MQTT-Broker verbunden ist.
      */
     public LanternSnapshot updateBrokerConnection(boolean brokerConnected) {
-        Instant updatedAt = Instant.now();
         return updateSnapshot(previous -> new LanternSnapshot(
-                withOnline(previous.state(), isDeviceOnlineAt(updatedAt)),
+                previous.state(),
                 previous.lastEvent(),
                 brokerConnected,
-                updatedAt
+                Instant.now()
         ));
     }
 
@@ -107,15 +104,12 @@ public class LanternStateService {
             return;
         }
 
-        if (!lastDeviceMessageAt.compareAndSet(lastSeenAt, null)) {
-            return;
-        }
-
         updateSnapshot(previous -> {
             if (!previous.state().online()) {
                 return previous;
             }
 
+            lastDeviceMessageAt.compareAndSet(lastSeenAt, null);
             return new LanternSnapshot(
                     withOnline(previous.state(), false),
                     previous.lastEvent(),
@@ -155,12 +149,6 @@ public class LanternStateService {
         );
     }
 
-    private boolean isDeviceOnlineAt(Instant now) {
-        Instant lastSeenAt = lastDeviceMessageAt.get();
-        return lastSeenAt != null
-                && Duration.between(lastSeenAt, now).compareTo(DEVICE_OFFLINE_TIMEOUT) < 0;
-    }
-
     /**
      * Baut den Initialzustand fuer Start, Tests und Broker-Ausfaelle.
      */
@@ -170,7 +158,7 @@ public class LanternStateService {
                 LightState.OFF,
                 null,
                 false,
-                DEFAULT_THRESHOLD_LUX
+                null
         );
         LanternEventPayload defaultEvent = new LanternEventPayload(
                 "SYSTEM_START",
