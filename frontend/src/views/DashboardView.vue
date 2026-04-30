@@ -11,8 +11,12 @@ import { useLanterns } from '@/composables/useLanterns'
 /**
  * Bindet Snapshot, Live-Status und Moduswechsel in die Dashboard-Ansicht ein.
  */
-const { brokerConnected, error, lanternOnline, loading, setMode, snapshot, submittingMode } = useLanterns()
-const { bridgeMode, submittingBridgeMode, setBridgeMode, snapshot: bridgeSnapshot, loading: bridgeLoading, error: bridgeError, brokerConnected: bridgeBroker, bridgeOnline } = useBridge()
+const { brokerConnected, error, lanternOnline, liveConnected: lanternLiveConnected, loading, setMode, snapshot, submittingMode } = useLanterns()
+const { bridgeMode, submittingBridgeMode, setBridgeMode, snapshot: bridgeSnapshot, loading: bridgeLoading, error: bridgeError, brokerConnected: bridgeBroker, bridgeOnline, liveConnected: bridgeLiveConnected } = useBridge()
+
+const lanternControlsEnabled = computed(() => brokerConnected.value && lanternOnline.value)
+const bridgeControlsEnabled = computed(() => bridgeBroker.value && bridgeOnline.value)
+const liveUpdatesActive = computed(() => lanternLiveConnected.value || bridgeLiveConnected.value)
 
 /**
  * Zeigt den Stand der Stadtmodule, wobei Laternen und Bruecke bereits live angebunden sind.
@@ -31,8 +35,11 @@ const modules = computed(() => [
   <main class="dashboard">
     <header class="dashboard__header">
       <div>
-        <p class="dashboard__eyebrow">SmarTown</p>
+        <img class="dashboard__logo" src="/smartown-logo.png" alt="SmarTown Logo" />
         <h1 class="dashboard__title">Kontrollzentrum</h1>
+        <span class="dashboard__live" :class="{ 'dashboard__live--offline': !liveUpdatesActive }">
+          {{ liveUpdatesActive ? 'Live' : 'Live aus' }}
+        </span>
       </div>
       <span class="dashboard__status" :class="{ 'dashboard__status--offline': !brokerConnected }">
         {{ brokerConnected ? 'MQTT verbunden' : 'MQTT getrennt' }}
@@ -56,6 +63,7 @@ const modules = computed(() => [
         :snapshot="snapshot"
       />
       <LanternModeControls
+        :controls-enabled="lanternControlsEnabled"
         :current-mode="snapshot?.state.mode ?? null"
         :submitting-mode="submittingMode"
         @set-mode="setMode"
@@ -71,6 +79,7 @@ const modules = computed(() => [
         :snapshot="bridgeSnapshot"
       />
       <BridgeModeControls
+        :controls-enabled="bridgeControlsEnabled"
         :current-mode="bridgeMode"
         :submitting-mode="submittingBridgeMode"
         @set-mode="setBridgeMode"
@@ -84,7 +93,10 @@ const modules = computed(() => [
   min-height: 100vh;
   padding: 32px;
   color: #172026;
-  background: #f5f7f8;
+  background:
+    radial-gradient(circle at top left, rgba(96, 53, 250, 0.14), transparent 26%),
+    radial-gradient(circle at top right, rgba(96, 53, 250, 0.1), transparent 24%),
+    #f6f3ff;
 }
 
 .dashboard__header {
@@ -96,12 +108,13 @@ const modules = computed(() => [
   max-width: 1120px;
 }
 
-.dashboard__eyebrow {
-  margin: 0 0 4px;
-  color: #357266;
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: uppercase;
+.dashboard__logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 10px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(96, 53, 250, 0.16));
 }
 
 .dashboard__title {
@@ -111,20 +124,41 @@ const modules = computed(() => [
   font-weight: 800;
 }
 
+.dashboard__live {
+  display: inline-flex;
+  margin-top: 10px;
+  border: 1px solid #dc2626;
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: #ffffff;
+  background: #dc2626;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.22);
+}
+
+.dashboard__live--offline {
+  border-color: #d8dfe2;
+  color: #5c6870;
+  background: #f5f7f8;
+  box-shadow: none;
+}
+
 .dashboard__status {
-  border: 1px solid #bad4ca;
+  border: 1px solid var(--theme-accent-border);
   border-radius: 999px;
   padding: 6px 12px;
-  color: #1f5f4b;
-  background: #e8f4ee;
+  color: var(--theme-accent-strong);
+  background: var(--theme-accent-soft);
   font-size: 0.875rem;
   font-weight: 700;
 }
 
 .dashboard__status--offline {
-  border-color: #f1d2b6;
-  color: #9a3412;
-  background: #fff2e8;
+  border-color: var(--theme-offline-border);
+  color: var(--theme-offline);
+  background: var(--theme-offline-bg);
 }
 
 .dashboard__section {
@@ -145,10 +179,12 @@ const modules = computed(() => [
 }
 
 .module-card {
-  border: 1px solid #d9e0e2;
-  border-radius: 8px;
+  border: 1px solid var(--theme-card-border);
+  border-radius: 14px;
   padding: 20px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 16px 40px rgba(96, 53, 250, 0.08);
 }
 
 .module-card__title {
@@ -160,7 +196,7 @@ const modules = computed(() => [
 
 .module-card__status {
   margin: 0;
-  color: #5c6870;
+  color: var(--theme-muted);
   font-weight: 600;
 }
 

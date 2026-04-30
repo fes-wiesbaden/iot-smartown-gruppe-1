@@ -121,10 +121,11 @@ const thresholdLabel = computed(() => {
 .status-card {
   display: grid;
   gap: 20px;
-  border: 1px solid #d9e0e2;
-  border-radius: 8px;
+  border: 1px solid var(--theme-card-border);
+  border-radius: 14px;
   padding: 24px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 40px rgba(96, 53, 250, 0.08);
 }
 
 .status-card__header {
@@ -136,7 +137,7 @@ const thresholdLabel = computed(() => {
 
 .status-card__eyebrow {
   margin: 0 0 4px;
-  color: #357266;
+  color: var(--theme-accent);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -160,21 +161,21 @@ const thresholdLabel = computed(() => {
   border: 1px solid #d8dfe2;
   border-radius: 999px;
   padding: 6px 10px;
-  color: #5c6870;
+  color: var(--theme-muted);
   background: #f5f7f8;
   font-size: 0.8125rem;
   font-weight: 700;
 }
 
 .status-card__badge--online {
-  border-color: #bad4ca;
-  color: #1f5f4b;
-  background: #e8f4ee;
+  border-color: var(--theme-accent-border);
+  color: var(--theme-accent-strong);
+  background: var(--theme-accent-soft);
 }
 
 .status-card__notice {
   margin: 0;
-  color: #5c6870;
+  color: var(--theme-muted);
   font-weight: 600;
 }
 
@@ -191,14 +192,14 @@ const thresholdLabel = computed(() => {
 .status-card__item {
   display: grid;
   gap: 6px;
-  border: 1px solid #eef2f4;
-  border-radius: 8px;
+  border: 1px solid var(--theme-surface-border);
+  border-radius: 10px;
   padding: 16px;
-  background: #f8fafb;
+  background: var(--theme-surface);
 }
 
 .status-card__label {
-  color: #5c6870;
+  color: var(--theme-muted);
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
