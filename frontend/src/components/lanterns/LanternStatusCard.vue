@@ -14,6 +14,22 @@ const props = defineProps<{
 }>()
 
 /**
+ * Macht den technischen Modus im UI lesbar.
+ */
+const modeLabel = computed(() => {
+  const mode = props.snapshot?.state.mode
+  if (!mode) {
+    return '-'
+  }
+
+  if (mode === 'AUTO') {
+    return 'Auto'
+  }
+
+  return mode === 'ON' ? 'An' : 'Aus'
+})
+
+/**
  * Formatiert den Online-Status des ESP32 fuer die Oberflaeche.
  */
 const onlineLabel = computed(() => {
@@ -75,7 +91,7 @@ const thresholdLabel = computed(() => {
     <div v-if="snapshot" class="status-card__grid">
       <article class="status-card__item">
         <span class="status-card__label">Modus</span>
-        <strong class="status-card__value">{{ snapshot.state.mode }}</strong>
+        <strong class="status-card__value">{{ modeLabel }}</strong>
       </article>
       <article class="status-card__item">
         <span class="status-card__label">Licht</span>

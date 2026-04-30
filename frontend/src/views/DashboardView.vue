@@ -15,7 +15,7 @@ const { brokerConnected, error, lanternOnline, loading, setMode, snapshot, submi
 const { bridgeMode, submittingBridgeMode, setBridgeMode, snapshot: bridgeSnapshot, loading: bridgeLoading, error: bridgeError, brokerConnected: bridgeBroker, bridgeOnline } = useBridge()
 
 /**
- * Zeigt den Stand der Stadtmodule, wobei nur die Laternen bereits am MQTT-MVP haengen.
+ * Zeigt den Stand der Stadtmodule, wobei Laternen und Bruecke bereits live angebunden sind.
  */
 const modules = computed(() => [
   { name: 'Bruecke', status: 'Offen' },
