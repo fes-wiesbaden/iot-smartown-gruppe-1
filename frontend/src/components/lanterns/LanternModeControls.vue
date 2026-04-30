@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { LanternMode } from '@/types/lanterns'
 
 /**
  * Props fuer den aktuell sichtbaren Modus und laufende REST-Aktionen.
  */
 const props = defineProps<{
+  controlsEnabled: boolean
   currentMode: LanternMode | null
   submittingMode: LanternMode | null
 }>()
@@ -21,9 +24,28 @@ const emit = defineEmits<{
  */
 const modes: Array<{ value: LanternMode; label: string; description: string }> = [
   { value: 'AUTO', label: 'Auto', description: 'BH1750 steuert die Laternen automatisch.' },
-  { value: 'FORCED_ON', label: 'Ein', description: 'Laternen bleiben manuell eingeschaltet.' },
-  { value: 'FORCED_OFF', label: 'Aus', description: 'Laternen bleiben manuell ausgeschaltet.' },
+  { value: 'ON', label: 'Ein', description: 'Laternen bleiben manuell eingeschaltet.' },
+  { value: 'OFF', label: 'Aus', description: 'Laternen bleiben manuell ausgeschaltet.' },
 ]
+
+/**
+ * Formatiert den aktiven Modus fuer das Kopf-Badge lesbar.
+ */
+const currentModeLabel = computed(() => {
+  if (props.currentMode === null) {
+    return 'unbekannt'
+  }
+  if (props.currentMode === 'AUTO') {
+    return 'Auto'
+  }
+
+  return props.currentMode === 'ON' ? 'An' : 'Aus'
+})
+
+/**
+ * Sperrt die Steuerung bei ausstehendem Request oder fehlender Broker-/ESP32-Verbindung.
+ */
+const buttonsDisabled = computed(() => props.submittingMode !== null || !props.controlsEnabled)
 </script>
 
 <template>
@@ -33,8 +55,12 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
         <p class="controls__eyebrow">Steuerung</p>
         <h2 id="lantern-controls-title" class="controls__title">Laternenmodus</h2>
       </div>
-      <span class="controls__mode">{{ currentMode ?? 'unbekannt' }}</span>
+      <span class="controls__mode">{{ currentModeLabel }}</span>
     </div>
+
+    <p v-if="!controlsEnabled" class="controls__notice">
+      Steuerung erst moeglich, wenn Broker und ESP32 online sind.
+    </p>
 
     <div class="controls__buttons">
       <button
@@ -46,7 +72,7 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
           'controls__button--pending': submittingMode === mode.value,
         }"
         type="button"
-        :disabled="submittingMode !== null"
+        :disabled="buttonsDisabled"
         @click="emit('setMode', mode.value)"
       >
         <span class="controls__button-label">{{ mode.label }}</span>
@@ -60,10 +86,11 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
 .controls {
   display: grid;
   gap: 20px;
-  border: 1px solid #d9e0e2;
-  border-radius: 8px;
+  border: 1px solid var(--theme-card-border);
+  border-radius: 14px;
   padding: 24px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 40px rgba(96, 53, 250, 0.08);
 }
 
 .controls__header {
@@ -75,7 +102,7 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
 
 .controls__eyebrow {
   margin: 0 0 4px;
-  color: #357266;
+  color: var(--theme-accent);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -92,8 +119,8 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
   border: 1px solid #d8dfe2;
   border-radius: 999px;
   padding: 6px 10px;
-  color: #42525b;
-  background: #f5f7f8;
+  color: var(--theme-accent-strong);
+  background: var(--theme-accent-soft);
   font-size: 0.8125rem;
   font-weight: 700;
 }
@@ -104,15 +131,22 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
   gap: 12px;
 }
 
+.controls__notice {
+  margin: 0;
+  color: var(--theme-offline);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 .controls__button {
   display: grid;
   gap: 8px;
   min-height: 124px;
-  border: 1px solid #d9e0e2;
-  border-radius: 8px;
+  border: 1px solid var(--theme-card-border);
+  border-radius: 10px;
   padding: 16px;
   color: #172026;
-  background: #f8fafb;
+  background: var(--theme-surface);
   text-align: left;
   cursor: pointer;
 }
@@ -123,8 +157,8 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
 }
 
 .controls__button--active {
-  border-color: #357266;
-  background: #e8f4ee;
+  border-color: var(--theme-accent);
+  background: var(--theme-accent-soft);
 }
 
 .controls__button--pending {
@@ -138,7 +172,7 @@ const modes: Array<{ value: LanternMode; label: string; description: string }> =
 }
 
 .controls__button-description {
-  color: #5c6870;
+  color: var(--theme-muted);
   font-size: 0.875rem;
   line-height: 1.4;
 }

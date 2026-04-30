@@ -1,33 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 
+import { openWebSocket, resolveApiBase, resolveWebSocketUrl } from '@/composables/backendEndpoints'
 import type { LanternMode, LanternSnapshot } from '@/types/lanterns'
-
-const DEV_SERVER_PORT = '5173'
-const BACKEND_PORT = '8080'
-
-/**
- * Nutzt im Vite-Dev-Server direkt das lokale Backend, im Docker-Frontend den Nginx-Proxy.
- */
-function resolveApiBase(): string {
-  if (window.location.port === DEV_SERVER_PORT) {
-    return `${window.location.protocol}//${window.location.hostname}:${BACKEND_PORT}/api`
-  }
-
-  return '/api'
-}
-
-/**
- * Leitet WebSocket-Aufrufe passend zur aktuellen Laufzeit an das Backend weiter.
- */
-function resolveWebSocketUrl(): string {
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-
-  if (window.location.port === DEV_SERVER_PORT) {
-    return `${protocol}://${window.location.hostname}:${BACKEND_PORT}/ws/lanterns`
-  }
-
-  return `${protocol}://${window.location.host}/ws/lanterns`
-}
 
 /**
  * Kapselt Snapshot-Laden, Live-Updates und Moduswechsel fuer die Laternenansicht.
@@ -42,10 +16,11 @@ export function useLanterns() {
   const manualClose = shallowRef(false)
 
   const apiBase = resolveApiBase()
-  const webSocketUrl = resolveWebSocketUrl()
+  const webSocketUrl = resolveWebSocketUrl('/ws/lanterns')
 
   const brokerConnected = computed(() => snapshot.value?.brokerConnected ?? false)
   const lanternOnline = computed(() => snapshot.value?.state.online ?? false)
+  const liveConnected = computed(() => websocket.value !== null)
 
   /**
    * Laedt den zuletzt bekannten Snapshot einmal per REST.
@@ -88,7 +63,17 @@ export function useLanterns() {
         throw new Error(`Mode update failed with status ${response.status}`)
       }
 
-      snapshot.value = (await response.json()) as LanternSnapshot
+      // Das Backend bestaetigt den Command sofort, der echte Zielzustand kommt aber asynchron per WebSocket.
+      // Deshalb darf ein alter REST-Snapshot den gerade geklickten Modus nicht wieder auf AUTO zuruecksetzen.
+      if (snapshot.value) {
+        snapshot.value = {
+          ...snapshot.value,
+          state: {
+            ...snapshot.value.state,
+            mode,
+          },
+        }
+      }
     } catch (requestError) {
       error.value = requestError instanceof Error ? requestError.message : 'Mode update failed'
     } finally {
@@ -118,7 +103,7 @@ export function useLanterns() {
       return
     }
 
-    const nextSocket = new WebSocket(webSocketUrl)
+    const nextSocket = openWebSocket(webSocketUrl)
     websocket.value = nextSocket
 
     nextSocket.onmessage = (event) => {
@@ -157,6 +142,7 @@ export function useLanterns() {
   return {
     brokerConnected,
     error,
+    liveConnected,
     lanternOnline,
     loading,
     setMode,
