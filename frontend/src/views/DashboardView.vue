@@ -45,14 +45,6 @@ const modules = computed(() => [
     featured: true,
     online: mqttConnected.value,
   },
-  { name: 'Bruecke', status: 'Offen', eyebrow: 'Stadtmodul', featured: false },
-  { name: 'Flughafen', status: 'Offen', eyebrow: 'Stadtmodul', featured: false },
-  {
-    name: 'Laternen',
-    status: !snapshot.value ? 'Warte auf ESP32' : lanternOnline.value ? 'ESP32 online' : 'ESP32 offline',
-    eyebrow: 'Stadtmodul',
-    featured: false,
-  },
 ])
 </script>
 
@@ -106,32 +98,32 @@ const modules = computed(() => [
       </div>
     </section>
 
-    <section class="dashboard__section dashboard__section--feature" aria-label="Laternen">
-      <LanternStatusCard
-        :error="error"
-        :loading="loading"
-        :snapshot="snapshot"
-      />
+    <section class="dashboard__section dashboard__section--feature" aria-label="Steuerungen">
       <LanternModeControls
         :controls-enabled="lanternControlsEnabled"
         :current-mode="snapshot?.state.mode ?? null"
         :submitting-mode="submittingMode"
         @set-mode="setMode"
       />
-    </section>
-
-    <section class="dashboard__section dashboard__section--feature" aria-label="Brücke">
-      <BridgeStatusCard
-        :bridge-online="bridgeOnline"
-        :error="bridgeError"
-        :loading="bridgeLoading"
-        :snapshot="bridgeSnapshot"
-      />
       <BridgeModeControls
         :controls-enabled="bridgeControlsEnabled"
         :current-mode="bridgeMode"
         :submitting-mode="submittingBridgeMode"
         @set-mode="setBridgeMode"
+      />
+    </section>
+
+    <section class="dashboard__section dashboard__section--feature" aria-label="Status">
+      <LanternStatusCard
+        :error="error"
+        :loading="loading"
+        :snapshot="snapshot"
+      />
+      <BridgeStatusCard
+        :bridge-online="bridgeOnline"
+        :error="bridgeError"
+        :loading="bridgeLoading"
+        :snapshot="bridgeSnapshot"
       />
     </section>
   </main>
@@ -233,14 +225,17 @@ const modules = computed(() => [
 
 .dashboard__section--feature {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  grid-template-columns: repeat(2, minmax(320px, 520px));
   gap: 16px;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(320px, 520px));
   gap: 16px;
+  justify-content: center;
 }
 
 .module-card {
@@ -255,6 +250,7 @@ const modules = computed(() => [
 }
 
 .module-card--broker {
+  grid-column: 1 / -1;
   border-color: rgba(96, 53, 250, 0.36);
   background:
     radial-gradient(circle at top right, rgba(96, 53, 250, 0.24), transparent 40%),
@@ -291,6 +287,7 @@ const modules = computed(() => [
 
 .module-card--broker .module-card__eyebrow {
   color: var(--theme-accent);
+  font-size: 0.8125rem;
 }
 
 .module-card__title {
@@ -315,6 +312,7 @@ const modules = computed(() => [
 
 .module-card--broker .module-card__title {
   color: #172026;
+  font-size: 1.25rem;
 }
 
 .module-card__status {
@@ -334,6 +332,7 @@ const modules = computed(() => [
   background: rgba(255, 255, 255, 0.44);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
   font-weight: 800;
+  font-size: 0.9375rem;
 }
 
 .module-card__status--broker-offline {
@@ -352,23 +351,26 @@ const modules = computed(() => [
   line-height: 1.45;
 }
 
+.module-card--broker .module-card__detail {
+  max-width: 32ch;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 @media (max-width: 920px) {
   .dashboard__section--feature {
     grid-template-columns: 1fr;
+    justify-content: stretch;
   }
 
   .module-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 640px) {
   .dashboard {
     padding: 20px;
-  }
-
-  .module-grid {
-    grid-template-columns: 1fr;
   }
 
   .module-card__broker-head {
