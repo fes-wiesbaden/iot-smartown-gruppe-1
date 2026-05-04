@@ -14,17 +14,24 @@ class MockWebSocket {
   static instances: MockWebSocket[] = []
 
   url: string
+  onopen: (() => void) | null = null
   onmessage: ((event: MessageEvent<string>) => void) | null = null
   onerror: (() => void) | null = null
   onclose: (() => void) | null = null
-  readyState = 1
+  readyState = 0
 
   constructor(url: string) {
     this.url = url
     MockWebSocket.instances.push(this)
   }
 
+  open() {
+    this.readyState = 1
+    this.onopen?.()
+  }
+
   close() {
+    this.readyState = 3
     this.onclose?.()
   }
 }
@@ -95,6 +102,9 @@ describe('DashboardView', () => {
     const wrapper = mount(DashboardView)
     await flushPromises()
 
+    MockWebSocket.instances.forEach((socket) => socket.open())
+    await flushPromises()
+
     expect(wrapper.text()).toContain('Kontrollzentrum')
     expect(wrapper.text()).toContain('Live')
     expect(wrapper.text()).toContain('Laternen')
@@ -119,6 +129,14 @@ describe('DashboardView', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/bridge',
     )
+  })
+
+  it('keeps the live badge offline while websocket connections are still retrying', async () => {
+    const DashboardView = await loadDashboardView()
+    const wrapper = mount(DashboardView)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Live aus')
   })
 
   /**

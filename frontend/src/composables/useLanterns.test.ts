@@ -17,17 +17,24 @@ class MockWebSocket {
   static instances: MockWebSocket[] = []
 
   url: string
+  onopen: (() => void) | null = null
   onmessage: ((event: MessageEvent<string>) => void) | null = null
   onerror: (() => void) | null = null
   onclose: (() => void) | null = null
-  readyState = 1
+  readyState = 0
 
   constructor(url: string) {
     this.url = url
     MockWebSocket.instances.push(this)
   }
 
+  open() {
+    this.readyState = 1
+    this.onopen?.()
+  }
+
   close() {
+    this.readyState = 3
     this.onclose?.()
   }
 }
@@ -40,6 +47,7 @@ const LanternHarness = defineComponent({
       h('div', [
         h('span', { id: 'mode' }, lanterns.snapshot.value?.state.mode ?? 'none'),
         h('span', { id: 'light' }, lanterns.snapshot.value?.state.lightState ?? 'none'),
+        h('span', { id: 'live' }, lanterns.liveConnected.value ? 'live' : 'offline'),
         h('button', { id: 'switch-on', onClick: () => lanterns.setMode('ON') }, 'on'),
       ])
   },
@@ -147,5 +155,24 @@ describe('useLanterns', () => {
 
     expect(wrapper.get('#mode').text()).toBe('ON')
     expect(wrapper.get('#light').text()).toBe('ON')
+  })
+
+  it('reports live only after the websocket is actually open', async () => {
+    const wrapper = mount(LanternHarness)
+    await flushPromises()
+
+    const lanternSocket = MockWebSocket.instances[0]
+
+    expect(wrapper.get('#live').text()).toBe('offline')
+
+    lanternSocket.open()
+    await flushPromises()
+
+    expect(wrapper.get('#live').text()).toBe('live')
+
+    lanternSocket.close()
+    await flushPromises()
+
+    expect(wrapper.get('#live').text()).toBe('offline')
   })
 })

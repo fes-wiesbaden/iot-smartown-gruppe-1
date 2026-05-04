@@ -12,6 +12,7 @@ export function useLanterns() {
   const error = shallowRef<string | null>(null)
   const submittingMode = shallowRef<LanternMode | null>(null)
   const websocket = shallowRef<WebSocket | null>(null)
+  const websocketConnected = shallowRef(false)
   const reconnectTimer = shallowRef<number | null>(null)
   const manualClose = shallowRef(false)
 
@@ -20,7 +21,7 @@ export function useLanterns() {
 
   const brokerConnected = computed(() => snapshot.value?.brokerConnected ?? false)
   const lanternOnline = computed(() => snapshot.value?.state.online ?? false)
-  const liveConnected = computed(() => websocket.value !== null)
+  const liveConnected = computed(() => websocketConnected.value)
 
   /**
    * Laedt den zuletzt bekannten Snapshot einmal per REST.
@@ -106,18 +107,24 @@ export function useLanterns() {
     const nextSocket = openWebSocket(webSocketUrl)
     websocket.value = nextSocket
 
+    nextSocket.onopen = () => {
+      websocketConnected.value = true
+    }
+
     nextSocket.onmessage = (event) => {
       snapshot.value = JSON.parse(event.data) as LanternSnapshot
       error.value = null
     }
 
     nextSocket.onerror = () => {
+      websocketConnected.value = false
       if (!snapshot.value) {
         error.value = 'WebSocket connection failed'
       }
     }
 
     nextSocket.onclose = () => {
+      websocketConnected.value = false
       websocket.value = null
       scheduleReconnect()
     }
@@ -135,6 +142,7 @@ export function useLanterns() {
       window.clearTimeout(reconnectTimer.value)
       reconnectTimer.value = null
     }
+    websocketConnected.value = false
     websocket.value?.close()
     websocket.value = null
   })
