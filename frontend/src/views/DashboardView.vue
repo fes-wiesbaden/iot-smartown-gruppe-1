@@ -1,23 +1,29 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import BridgeModeControls from '@/components/bridge/BridgeModeControls.vue'
+import BridgeStatusCard from '@/components/bridge/BridgeStatusCard.vue'
 import LanternModeControls from '@/components/lanterns/LanternModeControls.vue'
 import LanternStatusCard from '@/components/lanterns/LanternStatusCard.vue'
+import { useBridge } from '@/composables/useBridge'
 import { useLanterns } from '@/composables/useLanterns'
 
 /**
  * Bindet Snapshot, Live-Status und Moduswechsel in die Dashboard-Ansicht ein.
  */
 const { brokerConnected, error, lanternOnline, loading, setMode, snapshot, submittingMode } = useLanterns()
+const { bridgeMode, submittingBridgeMode, setBridgeMode, snapshot: bridgeSnapshot, loading: bridgeLoading, error: bridgeError, brokerConnected: bridgeBroker, bridgeOnline } = useBridge()
 
 /**
  * Zeigt den Stand der Stadtmodule, wobei nur die Laternen bereits am MQTT-MVP haengen.
  */
 const modules = computed(() => [
-  { name: 'Skilift', status: 'MVP offen' },
-  { name: 'Bruecke', status: 'MVP offen' },
-  { name: 'Flughafen', status: 'MVP offen' },
-  { name: 'Laternen', status: lanternOnline.value ? 'ESP32 online' : 'Warte auf ESP32' },
+  { name: 'Bruecke', status: 'Offen' },
+  { name: 'Flughafen', status: 'Offen' },
+  {
+    name: 'Laternen',
+    status: !snapshot.value ? 'Warte auf ESP32' : lanternOnline.value ? 'ESP32 online' : 'ESP32 offline',
+  },
 ])
 </script>
 
@@ -42,7 +48,7 @@ const modules = computed(() => [
       </div>
     </section>
 
-    <section class="dashboard__section dashboard__section--feature" aria-label="Laternen MQTT MVP">
+    <section class="dashboard__section dashboard__section--feature" aria-label="Laternen MQTT">
       <LanternStatusCard
         :broker-connected="brokerConnected"
         :error="error"
@@ -53,6 +59,21 @@ const modules = computed(() => [
         :current-mode="snapshot?.state.mode ?? null"
         :submitting-mode="submittingMode"
         @set-mode="setMode"
+      />
+    </section>
+
+    <section class="dashboard__section dashboard__section--feature" aria-label="Brücken MQTT">
+      <BridgeStatusCard
+        :broker-connected="bridgeBroker"
+        :bridge-online="bridgeOnline"
+        :error="bridgeError"
+        :loading="bridgeLoading"
+        :snapshot="bridgeSnapshot"
+      />
+      <BridgeModeControls
+        :current-mode="bridgeMode"
+        :submitting-mode="submittingBridgeMode"
+        @set-mode="setBridgeMode"
       />
     </section>
   </main>
