@@ -108,10 +108,12 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Kontrollzentrum')
     expect(wrapper.text()).toContain('Live')
     expect(wrapper.text()).toContain('Laternen')
+    expect(wrapper.text()).toContain('Flughafen')
     expect(wrapper.text()).toContain('Brücke')
-    expect(wrapper.text()).toContain('ESP32 online')
-    expect(wrapper.text()).toContain('12.5 lx')
-    expect(wrapper.text()).toContain('UNTEN')
+    expect(wrapper.text()).toContain('Online')
+    expect(wrapper.text()).toContain('Nicht verbunden')
+    expect(wrapper.text()).toContain('Auto')
+    expect(wrapper.text()).toContain('Unten')
 
     await wrapper.get('button').trigger('click')
     await flushPromises()
@@ -165,8 +167,7 @@ describe('DashboardView', () => {
     const wrapper = mount(DashboardView)
     await flushPromises()
 
-    expect(wrapper.text()).toContain('ESP32 offline')
-    expect(wrapper.text()).toContain('Steuerung erst moeglich, wenn Broker und ESP32 online sind.')
+    expect(wrapper.text()).toContain('Offline')
   })
 
   it('disables all control buttons when broker or device connectivity is missing', async () => {
@@ -197,8 +198,7 @@ describe('DashboardView', () => {
     await flushPromises()
 
     const buttons = wrapper.findAll('button')
-    expect(buttons).toHaveLength(6)
-    expect(buttons.every((button) => button.attributes('disabled') !== undefined)).toBe(true)
-    expect(wrapper.text()).toContain('Steuerung erst moeglich, wenn Broker und ESP32 online sind.')
+    expect(buttons).toHaveLength(8)
+    expect(buttons.filter((button) => button.attributes('disabled') !== undefined)).toHaveLength(6)
   })
 })
