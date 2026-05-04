@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 
+import AirportModeControls from '@/components/airport/AirportModeControls.vue'
+import AirportStatusCard from '@/components/airport/AirportStatusCard.vue'
 import BridgeModeControls from '@/components/bridge/BridgeModeControls.vue'
 import BridgeStatusCard from '@/components/bridge/BridgeStatusCard.vue'
 import LanternModeControls from '@/components/lanterns/LanternModeControls.vue'
 import LanternStatusCard from '@/components/lanterns/LanternStatusCard.vue'
 import { useBridge } from '@/composables/useBridge'
 import { useLanterns } from '@/composables/useLanterns'
+import type { AirportMode } from '@/types/airport'
 
 const dashboardLogoUrl = '/smartown-logo.png'
 
@@ -15,6 +18,7 @@ const dashboardLogoUrl = '/smartown-logo.png'
  */
 const { brokerConnected, error, lanternOnline, liveConnected: lanternLiveConnected, loading, setMode, snapshot, submittingMode } = useLanterns()
 const { bridgeMode, submittingBridgeMode, setBridgeMode, snapshot: bridgeSnapshot, loading: bridgeLoading, error: bridgeError, brokerConnected: bridgeBroker, bridgeOnline, liveConnected: bridgeLiveConnected } = useBridge()
+const airportMode = shallowRef<AirportMode>('OFF')
 
 const lanternControlsEnabled = computed(() => brokerConnected.value && lanternOnline.value)
 const bridgeControlsEnabled = computed(() => bridgeBroker.value && bridgeOnline.value)
@@ -46,6 +50,10 @@ const modules = computed(() => [
     online: mqttConnected.value,
   },
 ])
+
+function setAirportMode(mode: AirportMode) {
+  airportMode.value = mode
+}
 </script>
 
 <template>
@@ -105,6 +113,10 @@ const modules = computed(() => [
         :submitting-mode="submittingMode"
         @set-mode="setMode"
       />
+      <AirportModeControls
+        :current-mode="airportMode"
+        @set-mode="setAirportMode"
+      />
       <BridgeModeControls
         :controls-enabled="bridgeControlsEnabled"
         :current-mode="bridgeMode"
@@ -119,6 +131,7 @@ const modules = computed(() => [
         :loading="loading"
         :snapshot="snapshot"
       />
+      <AirportStatusCard :mode="airportMode" />
       <BridgeStatusCard
         :bridge-online="bridgeOnline"
         :error="bridgeError"
@@ -225,9 +238,8 @@ const modules = computed(() => [
 
 .dashboard__section--feature {
   display: grid;
-  grid-template-columns: repeat(2, minmax(320px, 520px));
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
   gap: 16px;
-  justify-content: center;
   align-items: stretch;
 }
 
@@ -359,7 +371,7 @@ const modules = computed(() => [
 
 @media (max-width: 920px) {
   .dashboard__section--feature {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
     justify-content: stretch;
   }
 
@@ -371,6 +383,10 @@ const modules = computed(() => [
 @media (max-width: 640px) {
   .dashboard {
     padding: 20px;
+  }
+
+  .dashboard__section--feature {
+    grid-template-columns: 1fr;
   }
 
   .module-card__broker-head {

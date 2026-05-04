@@ -122,7 +122,7 @@ const buttonsDisabled = computed(() => requestPending.value || controlsBlocked.v
   grid-template-rows: auto 1fr;
   gap: 8px;
   width: 100%;
-  height: 148px;
+  height: 184px;
   border: 1px solid var(--theme-card-border);
   border-radius: 10px;
   padding: 16px;
@@ -163,7 +163,9 @@ const buttonsDisabled = computed(() => requestPending.value || controlsBlocked.v
   color: var(--theme-muted);
   font-size: 0.875rem;
   line-height: 1.4;
-  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 @media (max-width: 840px) {
