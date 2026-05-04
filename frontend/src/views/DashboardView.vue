@@ -11,6 +11,8 @@ import { useBridge } from '@/composables/useBridge'
 import { useLanterns } from '@/composables/useLanterns'
 import type { AirportMode } from '@/types/airport'
 
+const dashboardLogoUrl = '/smartown-logo.png'
+
 /**
  * Bindet Snapshot, Live-Status und Moduswechsel in die Dashboard-Ansicht ein.
  */
@@ -58,6 +60,14 @@ function setAirportMode(mode: AirportMode) {
   <main class="dashboard">
     <header class="dashboard__header">
       <div class="dashboard__intro">
+        <img
+          class="dashboard__logo"
+          :src="dashboardLogoUrl"
+          alt="SmarTown Logo"
+          width="72"
+          height="72"
+          fetchpriority="high"
+        />
         <h1 class="dashboard__title">Kontrollzentrum</h1>
         <span class="dashboard__live" :class="{ 'dashboard__live--offline': !liveUpdatesActive }">
           <span class="dashboard__live-dot" aria-hidden="true"></span>
@@ -151,6 +161,15 @@ function setAirportMode(mode: AirportMode) {
 .dashboard__intro {
   display: grid;
   justify-items: start;
+}
+
+.dashboard__logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 10px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(96, 53, 250, 0.16));
 }
 
 .dashboard__title {
