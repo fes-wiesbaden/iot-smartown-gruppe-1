@@ -20,8 +20,13 @@ const unsigned long LOOP_DELAY_MS = 100;
 // Pins für Ultraschallsensoren (HC-SR04)
 #define TRIG_1_PIN 32
 #define ECHO_1_PIN 33
-#define TRIG_2_PIN 25
-#define ECHO_2_PIN 26
+#define TRIG_2_PIN 26
+#define ECHO_2_PIN 25
+
+// MQTT Topics
+#define MQTT_TOPIC_EVENT "smartown/bridge/event"
+#define MQTT_TOPIC_COMMAND "smartown/bridge/command"
+#define MQTT_TOPIC_STATE "smartown/bridge/state"
 
 const float MIN_DISTANCE_CM = 2.0;
 const float MAX_DISTANCE_CM = 30.0; // Reichweite erhöht für leichteres Testen
