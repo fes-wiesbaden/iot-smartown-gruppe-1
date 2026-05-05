@@ -1,24 +1,30 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, shallowRef } from 'vue'
 
+import AirportModeControls from '@/components/airport/AirportModeControls.vue'
+import AirportStatusCard from '@/components/airport/AirportStatusCard.vue'
 import BridgeModeControls from '@/components/bridge/BridgeModeControls.vue'
 import BridgeStatusCard from '@/components/bridge/BridgeStatusCard.vue'
 import LanternModeControls from '@/components/lanterns/LanternModeControls.vue'
 import LanternStatusCard from '@/components/lanterns/LanternStatusCard.vue'
 import { useBridge } from '@/composables/useBridge'
 import { useLanterns } from '@/composables/useLanterns'
+import type { AirportMode } from '@/types/airport'
 
-const dashboardLogoUrl = '/smartown-logo.png'
+const LANTERN_LIVE_WINDOW_MS = 35_000
+const BRIDGE_LIVE_WINDOW_MS = 20_000
 
 /**
  * Bindet Snapshot, Live-Status und Moduswechsel in die Dashboard-Ansicht ein.
  */
 const { brokerConnected, error, lanternOnline, liveConnected: lanternLiveConnected, loading, setMode, snapshot, submittingMode } = useLanterns()
-const { bridgeMode, submittingBridgeMode, setBridgeMode, snapshot: bridgeSnapshot, loading: bridgeLoading, error: bridgeError, brokerConnected: bridgeBroker, bridgeOnline, liveConnected: bridgeLiveConnected } = useBridge()
+const { submittingBridgeMode, setBridgeMode, snapshot: bridgeSnapshot, loading: bridgeLoading, error: bridgeError, brokerConnected: bridgeBroker, bridgeOnline, liveConnected: bridgeLiveConnected } = useBridge()
+const airportMode = shallowRef<AirportMode>('OFF')
+const liveStatusNow = shallowRef(Date.now())
+const liveStatusTimer = shallowRef<number | null>(null)
 
 const lanternControlsEnabled = computed(() => brokerConnected.value && lanternOnline.value)
 const bridgeControlsEnabled = computed(() => bridgeBroker.value && bridgeOnline.value)
-const liveUpdatesActive = computed(() => lanternLiveConnected.value || bridgeLiveConnected.value)
 const mqttStates = computed(() =>
   [snapshot.value?.brokerConnected, bridgeSnapshot.value?.brokerConnected].filter(
     (state): state is boolean => state !== undefined,
@@ -33,6 +39,29 @@ const mqttStatusLabel = computed(() => {
   return mqttConnected.value ? 'Verbunden' : 'Getrennt'
 })
 
+function isSnapshotFresh(updatedAt: string | undefined, freshnessWindowMs: number) {
+  if (!updatedAt) {
+    return false
+  }
+
+  const updatedAtMs = Date.parse(updatedAt)
+  if (Number.isNaN(updatedAtMs)) {
+    return false
+  }
+
+  return liveStatusNow.value - updatedAtMs <= freshnessWindowMs
+}
+
+const lanternTelemetryLive = computed(() => isSnapshotFresh(snapshot.value?.updatedAt, LANTERN_LIVE_WINDOW_MS))
+const bridgeTelemetryLive = computed(() => isSnapshotFresh(bridgeSnapshot.value?.updatedAt, BRIDGE_LIVE_WINDOW_MS))
+const liveUpdatesActive = computed(
+  () =>
+    lanternLiveConnected.value
+    || bridgeLiveConnected.value
+    || lanternTelemetryLive.value
+    || bridgeTelemetryLive.value,
+)
+
 /**
  * Zeigt den Stand der Stadtmodule, wobei Laternen und Bruecke bereits live angebunden sind.
  */
@@ -41,33 +70,34 @@ const modules = computed(() => [
     name: 'MQTT Broker',
     status: mqttStatusLabel.value,
     eyebrow: 'System',
-    detail: 'Zentrale Verbindung fuer alle Module',
+    detail: 'Zentrale Verbindung für alle Module',
     featured: true,
     online: mqttConnected.value,
   },
-  { name: 'Bruecke', status: 'Offen', eyebrow: 'Stadtmodul', featured: false },
-  { name: 'Flughafen', status: 'Offen', eyebrow: 'Stadtmodul', featured: false },
-  {
-    name: 'Laternen',
-    status: !snapshot.value ? 'Warte auf ESP32' : lanternOnline.value ? 'ESP32 online' : 'ESP32 offline',
-    eyebrow: 'Stadtmodul',
-    featured: false,
-  },
 ])
+
+function setAirportMode(mode: AirportMode) {
+  airportMode.value = mode
+}
+
+onMounted(() => {
+  liveStatusTimer.value = window.setInterval(() => {
+    liveStatusNow.value = Date.now()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (liveStatusTimer.value !== null) {
+    window.clearInterval(liveStatusTimer.value)
+    liveStatusTimer.value = null
+  }
+})
 </script>
 
 <template>
   <main class="dashboard">
     <header class="dashboard__header">
       <div class="dashboard__intro">
-        <img
-          class="dashboard__logo"
-          :src="dashboardLogoUrl"
-          alt="SmarTown Logo"
-          width="72"
-          height="72"
-          fetchpriority="high"
-        />
         <h1 class="dashboard__title">Kontrollzentrum</h1>
         <span class="dashboard__live" :class="{ 'dashboard__live--offline': !liveUpdatesActive }">
           <span class="dashboard__live-dot" aria-hidden="true"></span>
@@ -106,32 +136,37 @@ const modules = computed(() => [
       </div>
     </section>
 
-    <section class="dashboard__section dashboard__section--feature" aria-label="Laternen">
-      <LanternStatusCard
-        :error="error"
-        :loading="loading"
-        :snapshot="snapshot"
-      />
+    <section class="dashboard__section dashboard__section--feature" aria-label="Steuerungen">
       <LanternModeControls
         :controls-enabled="lanternControlsEnabled"
         :current-mode="snapshot?.state.mode ?? null"
         :submitting-mode="submittingMode"
         @set-mode="setMode"
       />
+      <AirportModeControls
+        :current-mode="airportMode"
+        @set-mode="setAirportMode"
+      />
+      <BridgeModeControls
+        :controls-enabled="bridgeControlsEnabled"
+        :current-mode="bridgeSnapshot?.mode ?? null"
+        :submitting-mode="submittingBridgeMode"
+        @set-mode="setBridgeMode"
+      />
     </section>
 
-    <section class="dashboard__section dashboard__section--feature" aria-label="Brücke">
+    <section class="dashboard__section dashboard__section--feature" aria-label="Status">
+      <LanternStatusCard
+        :error="error"
+        :loading="loading"
+        :snapshot="snapshot"
+      />
+      <AirportStatusCard :mode="airportMode" />
       <BridgeStatusCard
         :bridge-online="bridgeOnline"
         :error="bridgeError"
         :loading="bridgeLoading"
         :snapshot="bridgeSnapshot"
-      />
-      <BridgeModeControls
-        :controls-enabled="bridgeControlsEnabled"
-        :current-mode="bridgeMode"
-        :submitting-mode="submittingBridgeMode"
-        @set-mode="setBridgeMode"
       />
     </section>
   </main>
@@ -150,21 +185,12 @@ const modules = computed(() => [
 
 .dashboard__header {
   margin: 0 auto 32px;
-  max-width: 1120px;
+  max-width: 1440px;
 }
 
 .dashboard__intro {
   display: grid;
   justify-items: start;
-}
-
-.dashboard__logo {
-  display: block;
-  width: 72px;
-  height: 72px;
-  margin-bottom: 10px;
-  object-fit: contain;
-  filter: drop-shadow(0 12px 24px rgba(96, 53, 250, 0.16));
 }
 
 .dashboard__title {
@@ -228,19 +254,20 @@ const modules = computed(() => [
 
 .dashboard__section {
   margin: 0 auto 24px;
-  max-width: 1120px;
+  max-width: 1440px;
 }
 
 .dashboard__section--feature {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: stretch;
 }
 
 .module-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(320px, 1fr));
+  gap: 20px;
 }
 
 .module-card {
@@ -255,6 +282,7 @@ const modules = computed(() => [
 }
 
 .module-card--broker {
+  grid-column: 1 / -1;
   border-color: rgba(96, 53, 250, 0.36);
   background:
     radial-gradient(circle at top right, rgba(96, 53, 250, 0.24), transparent 40%),
@@ -290,7 +318,9 @@ const modules = computed(() => [
 }
 
 .module-card--broker .module-card__eyebrow {
-  color: var(--theme-accent);
+  color: #4c2bc8;
+  font-size: 0.8125rem;
+  font-weight: 900;
 }
 
 .module-card__title {
@@ -314,7 +344,9 @@ const modules = computed(() => [
 }
 
 .module-card--broker .module-card__title {
-  color: #172026;
+  color: #111827;
+  font-size: 1.25rem;
+  font-weight: 900;
 }
 
 .module-card__status {
@@ -333,7 +365,8 @@ const modules = computed(() => [
   color: var(--theme-accent-strong);
   background: rgba(255, 255, 255, 0.44);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  font-weight: 800;
+  font-weight: 900;
+  font-size: 0.9375rem;
 }
 
 .module-card__status--broker-offline {
@@ -352,19 +385,32 @@ const modules = computed(() => [
   line-height: 1.45;
 }
 
-@media (max-width: 920px) {
+.module-card--broker .module-card__detail {
+  max-width: 32ch;
+  color: #34424d;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+@media (max-width: 1120px) {
   .dashboard__section--feature {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+    justify-content: stretch;
   }
 
   .module-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
   }
 }
 
 @media (max-width: 640px) {
   .dashboard {
     padding: 20px;
+  }
+
+  .dashboard__section--feature {
+    grid-template-columns: 1fr;
   }
 
   .module-grid {

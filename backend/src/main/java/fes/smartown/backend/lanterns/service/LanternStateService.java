@@ -50,8 +50,9 @@ public class LanternStateService {
         Objects.requireNonNull(statePayload, "statePayload");
         Objects.requireNonNull(receivedAt, "receivedAt");
         lastDeviceMessageAt.set(receivedAt);
+        LanternStatePayload onlineState = withOnline(statePayload, isDeviceOnlineAt(receivedAt));
         return updateSnapshot(previous -> new LanternSnapshot(
-                statePayload,
+                onlineState,
                 previous.lastEvent(),
                 previous.brokerConnected(),
                 receivedAt
@@ -70,7 +71,7 @@ public class LanternStateService {
         Objects.requireNonNull(receivedAt, "receivedAt");
         lastDeviceMessageAt.set(receivedAt);
         return updateSnapshot(previous -> new LanternSnapshot(
-                previous.state(),
+                withOnline(previous.state(), isDeviceOnlineAt(receivedAt)),
                 eventPayload,
                 previous.brokerConnected(),
                 receivedAt
@@ -81,11 +82,12 @@ public class LanternStateService {
      * Markiert, ob das Backend aktuell mit dem MQTT-Broker verbunden ist.
      */
     public LanternSnapshot updateBrokerConnection(boolean brokerConnected) {
+        Instant updatedAt = Instant.now();
         return updateSnapshot(previous -> new LanternSnapshot(
-                previous.state(),
+                withOnline(previous.state(), isDeviceOnlineAt(updatedAt)),
                 previous.lastEvent(),
                 brokerConnected,
-                Instant.now()
+                updatedAt
         ));
     }
 
@@ -105,12 +107,15 @@ public class LanternStateService {
             return;
         }
 
+        if (!lastDeviceMessageAt.compareAndSet(lastSeenAt, null)) {
+            return;
+        }
+
         updateSnapshot(previous -> {
             if (!previous.state().online()) {
                 return previous;
             }
 
-            lastDeviceMessageAt.compareAndSet(lastSeenAt, null);
             return new LanternSnapshot(
                     withOnline(previous.state(), false),
                     previous.lastEvent(),
@@ -148,6 +153,12 @@ public class LanternStateService {
                 online,
                 state.thresholdLux()
         );
+    }
+
+    private boolean isDeviceOnlineAt(Instant now) {
+        Instant lastSeenAt = lastDeviceMessageAt.get();
+        return lastSeenAt != null
+                && Duration.between(lastSeenAt, now).compareTo(DEVICE_OFFLINE_TIMEOUT) < 0;
     }
 
     /**
