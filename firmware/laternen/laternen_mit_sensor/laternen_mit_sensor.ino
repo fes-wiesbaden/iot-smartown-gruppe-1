@@ -5,13 +5,12 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-#include "secrets.h"
+#include "../laternen_mit_sensor/secrets.h"
 
 namespace {
 constexpr char TOPIC_COMMAND[] = "smartown/lanterns/command";
 constexpr char TOPIC_STATE[] = "smartown/lanterns/state";
 constexpr char TOPIC_EVENT[] = "smartown/lanterns/event";
-constexpr char MQTT_CLIENT_ID_RUNTIME[] = "esp32-lantern-mqtt";
 constexpr float THRESHOLD_LUX = 50.0F;
 constexpr uint8_t I2C_SDA_PIN = 21;
 constexpr uint8_t I2C_SCL_PIN = 22;
@@ -44,6 +43,8 @@ LightState currentLightState = LightState::Off;
 float lastLux = NAN;
 unsigned long lastSensorReadMs = 0;
 unsigned long lastStatePublishMs = 0;
+char mqttClientId[32] = "";
+bool startupEventPublished = false;
 
 const char *modeToString(LanternMode mode) {
   switch (mode) {
@@ -185,9 +186,24 @@ void ensureWifiConnected() {
   }
 }
 
-void resetToAutoAfterReconnect() {
-  // Jeder Broker-Reconnect startet bewusst wieder im Grundmodus AUTO.
-  currentMode = LanternMode::Auto;
+void ensureMqttClientIdInitialized() {
+  if (mqttClientId[0] != '\0') {
+    return;
+  }
+
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  snprintf(
+      mqttClientId,
+      sizeof(mqttClientId),
+      "esp32-lantern-%02X%02X%02X",
+      mac[3],
+      mac[4],
+      mac[5]);
+}
+
+void publishCurrentStateAfterReconnect() {
+  // Nach einem Broker-Reconnect bleibt der zuletzt aktive Modus erhalten.
   refreshLux();
   updateLanternState(false, nullptr, nullptr);
 }
@@ -218,11 +234,16 @@ void ensureMqttConnected() {
     return;
   }
 
+  ensureMqttClientIdInitialized();
+
   while (!mqttClient.connected()) {
-    if (mqttClient.connect(MQTT_CLIENT_ID_RUNTIME, MQTT_USERNAME, MQTT_PASSWORD)) {
+    if (mqttClient.connect(mqttClientId, MQTT_USERNAME, MQTT_PASSWORD)) {
       mqttClient.subscribe(TOPIC_COMMAND);
-      resetToAutoAfterReconnect();
-      publishEvent("SYSTEM_START", "SYSTEM_START");
+      publishCurrentStateAfterReconnect();
+      if (!startupEventPublished) {
+        publishEvent("SYSTEM_START", "SYSTEM_START");
+        startupEventPublished = true;
+      }
       return;
     }
 
