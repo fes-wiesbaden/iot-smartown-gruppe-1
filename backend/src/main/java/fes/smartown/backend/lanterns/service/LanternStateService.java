@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Service
@@ -26,6 +27,7 @@ public class LanternStateService {
     private final LanternRealtimeService lanternRealtimeService;
     private final AtomicReference<LanternSnapshot> snapshotReference = new AtomicReference<>(defaultSnapshot());
     private final AtomicReference<Instant> lastDeviceMessageAt = new AtomicReference<>();
+    private final AtomicBoolean awaitingFreshDeviceMessageAfterBrokerConnect = new AtomicBoolean(false);
 
     public LanternStateService(LanternRealtimeService lanternRealtimeService) {
         this.lanternRealtimeService = lanternRealtimeService;
@@ -49,6 +51,16 @@ public class LanternStateService {
     LanternSnapshot handleState(LanternStatePayload statePayload, Instant receivedAt) {
         Objects.requireNonNull(statePayload, "statePayload");
         Objects.requireNonNull(receivedAt, "receivedAt");
+
+        if (awaitingFreshDeviceMessageAfterBrokerConnect.compareAndSet(true, false)) {
+            return updateSnapshot(previous -> new LanternSnapshot(
+                    withOnline(statePayload, false),
+                    previous.lastEvent(),
+                    previous.brokerConnected(),
+                    receivedAt
+            ));
+        }
+
         lastDeviceMessageAt.set(receivedAt);
         LanternStatePayload onlineState = withOnline(statePayload, isDeviceOnlineAt(receivedAt));
         return updateSnapshot(previous -> new LanternSnapshot(
@@ -69,6 +81,7 @@ public class LanternStateService {
     LanternSnapshot handleEvent(LanternEventPayload eventPayload, Instant receivedAt) {
         Objects.requireNonNull(eventPayload, "eventPayload");
         Objects.requireNonNull(receivedAt, "receivedAt");
+        awaitingFreshDeviceMessageAfterBrokerConnect.set(false);
         lastDeviceMessageAt.set(receivedAt);
         return updateSnapshot(previous -> new LanternSnapshot(
                 withOnline(previous.state(), isDeviceOnlineAt(receivedAt)),
@@ -82,9 +95,25 @@ public class LanternStateService {
      * Markiert, ob das Backend aktuell mit dem MQTT-Broker verbunden ist.
      */
     public LanternSnapshot updateBrokerConnection(boolean brokerConnected) {
-        Instant updatedAt = Instant.now();
+        return updateBrokerConnection(brokerConnected, Instant.now());
+    }
+
+    LanternSnapshot updateBrokerConnection(boolean brokerConnected, Instant updatedAt) {
+        boolean wasBrokerConnected = snapshotReference.get().brokerConnected();
+        boolean awaitingFreshDeviceMessage = brokerConnected && !wasBrokerConnected;
+
+        if (awaitingFreshDeviceMessage) {
+            awaitingFreshDeviceMessageAfterBrokerConnect.set(true);
+            lastDeviceMessageAt.set(null);
+        } else if (!brokerConnected) {
+            awaitingFreshDeviceMessageAfterBrokerConnect.set(false);
+            lastDeviceMessageAt.set(null);
+        }
+
         return updateSnapshot(previous -> new LanternSnapshot(
-                withOnline(previous.state(), isDeviceOnlineAt(updatedAt)),
+                withOnline(previous.state(), brokerConnected
+                        && !awaitingFreshDeviceMessage
+                        && isDeviceOnlineAt(updatedAt)),
                 previous.lastEvent(),
                 brokerConnected,
                 updatedAt

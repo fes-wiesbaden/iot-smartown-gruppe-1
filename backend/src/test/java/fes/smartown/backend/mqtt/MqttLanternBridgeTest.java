@@ -26,6 +26,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -110,6 +112,29 @@ class MqttLanternBridgeTest {
         bridge.messageArrived("smartown/bridge/state", message(Map.of("status", "OPEN")));
 
         verifyNoInteractions(lanternStateService);
+    }
+
+    @Test
+    /**
+     * Erwartet, dass der Brokerstatus bereits gesetzt ist, bevor ein retained State waehrend des Subscribes verarbeitet wird.
+     */
+    void marksBrokerConnectedBeforeRetainedStateCanArrive() throws Exception {
+        LanternStateService lanternStateService = mock(LanternStateService.class);
+        MqttClient mqttClient = mock(MqttClient.class);
+        ScheduledExecutorService reconnectExecutor = mock(ScheduledExecutorService.class);
+        MqttLanternBridge bridge = bridge(lanternStateService, mqttClient, reconnectExecutor);
+        LanternStatePayload retainedPayload = new LanternStatePayload(LanternMode.AUTO, LightState.ON, 14.5, true, 50.0);
+
+        doAnswer(invocation -> {
+            bridge.messageArrived("smartown/lanterns/state", message(retainedPayload));
+            return null;
+        }).when(mqttClient).subscribe("smartown/lanterns/state", 1);
+
+        bridge.connectOnStartup();
+
+        var inOrder = inOrder(lanternStateService);
+        inOrder.verify(lanternStateService).updateBrokerConnection(true);
+        inOrder.verify(lanternStateService).handleState(retainedPayload);
     }
 
     private MqttLanternBridge bridge(LanternStateService lanternStateService,

@@ -153,8 +153,8 @@ abstract class AbstractMqttBridge implements MqttCallback {
             }
 
             mqttClient.connect(connectOptions());
-            subscribeTopics(mqttClient);
             onBrokerConnectionChanged(true);
+            subscribeTopics(mqttClient);
             reconnectScheduled.set(false);
             logger.info("Connected to MQTT broker at {}", properties.getBrokerUrl());
         } catch (MqttException exception) {

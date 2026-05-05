@@ -9,6 +9,7 @@ package fes.smartown.backend.lanterns.service;
 import fes.smartown.backend.lanterns.model.LanternEventPayload;
 import fes.smartown.backend.lanterns.model.LanternMode;
 import fes.smartown.backend.lanterns.model.LanternReason;
+import fes.smartown.backend.lanterns.model.LanternSnapshot;
 import fes.smartown.backend.lanterns.model.LanternStatePayload;
 import fes.smartown.backend.lanterns.model.LightState;
 import org.junit.jupiter.api.Test;
@@ -95,6 +96,104 @@ class LanternStateServiceTest {
         lanternStateService.expireStaleDeviceIfNecessary(firstStateAt.plus(LanternStateService.DEVICE_OFFLINE_TIMEOUT).plusSeconds(1));
 
         assertThat(lanternStateService.getSnapshot().state().online()).isFalse();
+        verify(realtimeService, times(2)).broadcast(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    /**
+     * Erwartet, dass ein moeglicherweise retained State direkt nach Broker-Reconnect die Laterne noch nicht online markiert.
+     */
+    void keepsLanternOfflineForFirstStateAfterBrokerReconnect() {
+        LanternRealtimeService realtimeService = mock(LanternRealtimeService.class);
+        LanternStateService lanternStateService = new LanternStateService(realtimeService);
+
+        lanternStateService.updateBrokerConnection(true, Instant.parse("2026-04-29T10:15:00Z"));
+
+        LanternSnapshot snapshot = lanternStateService.handleState(new LanternStatePayload(
+                LanternMode.AUTO,
+                LightState.ON,
+                14.5,
+                true,
+                50.0
+        ), Instant.parse("2026-04-29T10:15:01Z"));
+
+        assertThat(snapshot.state().online()).isFalse();
+        assertThat(snapshot.state().lightState()).isEqualTo(LightState.ON);
+        verify(realtimeService, times(2)).broadcast(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    /**
+     * Erwartet, dass ein zweites State-Payload nach dem Bootstrap-State als frisches Lebenszeichen zaehlt.
+     */
+    void marksLanternOnlineForSecondStateAfterBrokerReconnect() {
+        LanternRealtimeService realtimeService = mock(LanternRealtimeService.class);
+        LanternStateService lanternStateService = new LanternStateService(realtimeService);
+
+        lanternStateService.updateBrokerConnection(true, Instant.parse("2026-04-29T10:15:00Z"));
+        lanternStateService.handleState(new LanternStatePayload(
+                LanternMode.AUTO,
+                LightState.OFF,
+                60.0,
+                true,
+                50.0
+        ), Instant.parse("2026-04-29T10:15:01Z"));
+
+        LanternSnapshot snapshot = lanternStateService.handleState(new LanternStatePayload(
+                LanternMode.ON,
+                LightState.ON,
+                14.5,
+                true,
+                50.0
+        ), Instant.parse("2026-04-29T10:15:05Z"));
+
+        assertThat(snapshot.state().online()).isTrue();
+        assertThat(snapshot.state().mode()).isEqualTo(LanternMode.ON);
+        verify(realtimeService, times(3)).broadcast(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    /**
+     * Erwartet, dass ein frisches Event nach Broker-Reconnect die Laterne direkt online markiert.
+     */
+    void marksLanternOnlineWhenEventArrivesAfterBrokerReconnect() {
+        LanternRealtimeService realtimeService = mock(LanternRealtimeService.class);
+        LanternStateService lanternStateService = new LanternStateService(realtimeService);
+
+        lanternStateService.updateBrokerConnection(true, Instant.parse("2026-04-29T10:15:00Z"));
+
+        LanternSnapshot snapshot = lanternStateService.handleEvent(new LanternEventPayload(
+                "SYSTEM_START",
+                LightState.OFF,
+                LanternReason.SYSTEM_START
+        ), Instant.parse("2026-04-29T10:15:02Z"));
+
+        assertThat(snapshot.state().online()).isTrue();
+        assertThat(snapshot.lastEvent().type()).isEqualTo("SYSTEM_START");
+        verify(realtimeService, times(2)).broadcast(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    /**
+     * Erwartet, dass ein Broker-Reconnect einen zuvor online gemeldeten Snapshot sofort wieder sperrt.
+     */
+    void forcesLanternOfflineUntilFreshMessageAfterBrokerReconnect() {
+        LanternRealtimeService realtimeService = mock(LanternRealtimeService.class);
+        LanternStateService lanternStateService = new LanternStateService(realtimeService);
+        Instant firstStateAt = Instant.parse("2026-04-29T10:15:00Z");
+
+        lanternStateService.handleState(new LanternStatePayload(
+                LanternMode.AUTO,
+                LightState.ON,
+                14.5,
+                true,
+                50.0
+        ), firstStateAt);
+
+        LanternSnapshot snapshot = lanternStateService.updateBrokerConnection(true, firstStateAt.plusSeconds(10));
+
+        assertThat(snapshot.state().online()).isFalse();
+        assertThat(snapshot.brokerConnected()).isTrue();
         verify(realtimeService, times(2)).broadcast(org.mockito.ArgumentMatchers.any());
     }
 }
