@@ -11,7 +11,7 @@ namespace {
 constexpr char TOPIC_COMMAND[] = "smartown/lanterns/command";
 constexpr char TOPIC_STATE[] = "smartown/lanterns/state";
 constexpr char TOPIC_EVENT[] = "smartown/lanterns/event";
-constexpr float THRESHOLD_LUX = 50.0F;
+constexpr float THRESHOLD_LUX = 100.0F;
 constexpr uint8_t I2C_SDA_PIN = 21;
 constexpr uint8_t I2C_SCL_PIN = 22;
 constexpr uint8_t PWM_DRIVER_ADDRESS = 0x40;
