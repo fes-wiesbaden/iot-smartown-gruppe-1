@@ -22,6 +22,24 @@ class LanternStateServiceTest {
 
     @Test
     /**
+     * Erwartet, dass auch reine Event-Nachrichten die Laterne als online markieren.
+     */
+    void marksLanternOnlineWhenOnlyAnEventArrives() {
+        LanternRealtimeService realtimeService = mock(LanternRealtimeService.class);
+        LanternStateService lanternStateService = new LanternStateService(realtimeService);
+
+        var snapshot = lanternStateService.handleEvent(new LanternEventPayload(
+                "LIGHT_STATE_CHANGED",
+                LightState.ON,
+                LanternReason.MANUAL_OVERRIDE
+        ), Instant.parse("2026-04-29T10:15:00Z"));
+
+        assertThat(snapshot.state().online()).isTrue();
+        verify(realtimeService).broadcast(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    /**
      * Erwartet, dass State und Event den Snapshot aktualisieren und einen Broadcast ausloesen.
      */
     void mergesStateAndEventPayloadsIntoCurrentSnapshot() {

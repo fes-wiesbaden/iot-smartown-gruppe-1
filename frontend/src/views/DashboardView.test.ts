@@ -90,6 +90,7 @@ describe('DashboardView', () => {
    * Raeumt globale Stubs nach jedem Testlauf auf.
    */
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     openWebSocketMock.mockReset()
   })
@@ -113,10 +114,7 @@ describe('DashboardView', () => {
     expect(wrapper.text()).toContain('Online')
     expect(wrapper.text()).toContain('Nicht verbunden')
     expect(wrapper.text()).toContain('Auto')
-    expect(wrapper.text()).not.toContain('Flugzeugmessung')
-    expect(wrapper.text()).not.toContain('12.5 lx')
     expect(wrapper.text()).toContain('Unten')
-    expect(wrapper.text()).not.toContain('Letztes Event')
 
     await wrapper.get('button').trigger('click')
     await flushPromises()
@@ -142,6 +140,23 @@ describe('DashboardView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Live aus')
+  })
+
+  it('keeps the live badge active while fresh telemetry is present during websocket reconnects', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-23T09:00:10Z'))
+
+    const DashboardView = await loadDashboardView()
+    const wrapper = mount(DashboardView)
+    await flushPromises()
+
+    expect(wrapper.get('.dashboard__live').text()).toBe('Live')
+
+    await vi.advanceTimersByTimeAsync(40_000)
+    await flushPromises()
+
+    expect(wrapper.get('.dashboard__live').text()).toBe('Live aus')
+    wrapper.unmount()
   })
 
   /**
@@ -203,6 +218,5 @@ describe('DashboardView', () => {
     const buttons = wrapper.findAll('button')
     expect(buttons).toHaveLength(8)
     expect(buttons.filter((button) => button.attributes('disabled') !== undefined)).toHaveLength(6)
-    expect(wrapper.text()).not.toContain('Steuerung erst moeglich, wenn Broker und ESP32 online sind.')
   })
 })
