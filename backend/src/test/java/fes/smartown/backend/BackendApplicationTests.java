@@ -1,10 +1,7 @@
 package fes.smartown.backend;
 
-import fes.smartown.backend.lanterns.persistence.LanternDeviceRepository;
-import fes.smartown.backend.lanterns.persistence.LanternLuxMeasurementRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 
 @SpringBootTest(properties = {
         "smartown.mqtt.enabled=false",
@@ -14,12 +11,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
                 + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
 })
 class BackendApplicationTests {
-
-    @MockBean
-    private LanternDeviceRepository lanternDeviceRepository;
-
-    @MockBean
-    private LanternLuxMeasurementRepository lanternLuxMeasurementRepository;
 
     @Test
     void contextLoads() {
