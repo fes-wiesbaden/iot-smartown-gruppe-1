@@ -40,12 +40,13 @@ PubSubClient mqttClient(wifiClient);
 
 LanternMode currentMode = LanternMode::Auto;
 LightState currentLightState = LightState::Off;
-float lastLux = NAN;
+float lastMeasuredLux = NAN;
 unsigned long lastSensorReadMs = 0;
 unsigned long lastStatePublishMs = 0;
 char mqttClientId[32] = "";
 bool startupEventPublished = false;
 
+// Uebersetzt den internen Modus in das MQTT-Schema des Projekts.
 const char *modeToString(LanternMode mode) {
   switch (mode) {
     case LanternMode::Auto:
@@ -59,14 +60,16 @@ const char *modeToString(LanternMode mode) {
   return "AUTO";
 }
 
+// Uebersetzt den physischen Lampenzustand in den MQTT-Wert.
 const char *lightStateToString(LightState lightState) {
   return lightState == LightState::On ? "ON" : "OFF";
 }
 
 const char *reasonForLux(float lux) {
-  return lux < THRESHOLD_LUX ? "LOW_LUX" : "HIGH_LUX";
+  return lux < DARKNESS_THRESHOLD_LUX ? "LOW_LUX" : "HIGH_LUX";
 }
 
+// Unbekannte Werte fallen bewusst auf AUTO zurueck, damit fehlerhafte Commands keinen Dauerzustand erzwingen.
 LanternMode parseMode(const String &mode) {
   if (mode == "ON") {
     return LanternMode::On;
@@ -82,14 +85,14 @@ bool isValidLux(float lux) {
   return !isnan(lux) && lux >= 0.0F;
 }
 
-void setAllLanternChannels(bool enabled) {
+void setLanternOutputs(bool enabled) {
   // Die PCA9685-Kanaele werden gemeinsam geschaltet, weil alle Laternen denselben Zustand teilen.
   for (uint8_t channel = FIRST_LANTERN_CHANNEL; channel <= LAST_LANTERN_CHANNEL; channel++) {
     pwm.setPWM(channel, 0, enabled ? 0 : 4095);
   }
 }
 
-LightState resolveLightStateForMode(LanternMode mode, float lux, bool hasLux, LightState fallback) {
+LightState determineTargetLightState(LanternMode mode, float lux, bool hasLux, LightState fallback) {
   if (mode == LanternMode::On) {
     return LightState::On;
   }
@@ -97,23 +100,25 @@ LightState resolveLightStateForMode(LanternMode mode, float lux, bool hasLux, Li
     return LightState::Off;
   }
   if (!hasLux) {
+    // Ohne gueltigen Sensorwert bleibt der letzte Ausgangszustand erhalten.
     return fallback;
   }
 
-  return lux < THRESHOLD_LUX ? LightState::On : LightState::Off;
+  return lux < DARKNESS_THRESHOLD_LUX ? LightState::On : LightState::Off;
 }
 
+// Publiziert den aktuellen Zustand retained, damit Backend/Frontend nach Reconnect sofort Daten sehen.
 void publishState(bool retained) {
   StaticJsonDocument<192> document;
   document["mode"] = modeToString(currentMode);
   document["lightState"] = lightStateToString(currentLightState);
-  if (isValidLux(lastLux)) {
-    document["lux"] = lastLux;
+  if (isValidLux(lastMeasuredLux)) {
+    document["lux"] = lastMeasuredLux;
   } else {
     document["lux"] = nullptr;
   }
   document["online"] = true;
-  document["thresholdLux"] = THRESHOLD_LUX;
+  document["thresholdLux"] = DARKNESS_THRESHOLD_LUX;
 
   char buffer[192];
   const size_t length = serializeJson(document, buffer);
@@ -121,6 +126,7 @@ void publishState(bool retained) {
   lastStatePublishMs = millis();
 }
 
+// Ereignisse sind nicht retained: sie beschreiben nur konkrete Zustandswechsel oder Starts.
 void publishEvent(const char *type, const char *reason) {
   StaticJsonDocument<160> document;
   document["type"] = type;
@@ -134,12 +140,14 @@ void publishEvent(const char *type, const char *reason) {
 
 void applyHardwareState(LightState nextLightState) {
   currentLightState = nextLightState;
-  setAllLanternChannels(nextLightState == LightState::On);
+  setLanternOutputs(nextLightState == LightState::On);
 }
 
-void updateLanternState(bool emitEvent, const char *eventType, const char *reason) {
-  const bool hasLux = isValidLux(lastLux);
-  const LightState nextLightState = resolveLightStateForMode(currentMode, lastLux, hasLux, currentLightState);
+// Wendet den aktuellen Modus an, schaltet bei Bedarf die Hardware und spiegelt den Zustand per MQTT.
+void synchronizeLanternState(bool emitEvent, const char *eventType, const char *reason) {
+  const bool hasLux = isValidLux(lastMeasuredLux);
+  const LightState nextLightState =
+      determineTargetLightState(currentMode, lastMeasuredLux, hasLux, currentLightState);
   const bool lightChanged = nextLightState != currentLightState;
 
   if (lightChanged) {
@@ -158,21 +166,22 @@ void updateLanternState(bool emitEvent, const char *eventType, const char *reaso
   }
 
   if (lightChanged && currentMode == LanternMode::Auto && hasLux) {
-    publishEvent("LIGHT_STATE_CHANGED", reasonForLux(lastLux));
+    publishEvent("LIGHT_STATE_CHANGED", reasonForLux(lastMeasuredLux));
   }
 }
 
-bool refreshLux() {
+bool readAmbientLux() {
   const float lux = lightMeter.readLightLevel();
   if (!isValidLux(lux)) {
-    lastLux = NAN;
+    lastMeasuredLux = NAN;
     return false;
   }
 
-  lastLux = lux;
+  lastMeasuredLux = lux;
   return true;
 }
 
+// Baut die Wi-Fi-Verbindung bei Bedarf wieder auf.
 void ensureWifiConnected() {
   if (WiFi.status() == WL_CONNECTED) {
     return;
@@ -186,6 +195,7 @@ void ensureWifiConnected() {
   }
 }
 
+// Erzeugt eine stabile MQTT-Client-ID aus den letzten drei MAC-Bytes.
 void ensureMqttClientIdInitialized() {
   if (mqttClientId[0] != '\0') {
     return;
@@ -204,10 +214,11 @@ void ensureMqttClientIdInitialized() {
 
 void publishCurrentStateAfterReconnect() {
   // Nach einem Broker-Reconnect bleibt der zuletzt aktive Modus erhalten.
-  refreshLux();
-  updateLanternState(false, nullptr, nullptr);
+  readAmbientLux();
+  synchronizeLanternState(false, nullptr, nullptr);
 }
 
+// Verarbeitet MQTT-Kommandos zum Wechseln zwischen AUTO, ON und OFF.
 void handleCommand(char *topic, byte *payload, unsigned int length) {
   if (String(topic) != TOPIC_COMMAND) {
     return;
@@ -225,10 +236,11 @@ void handleCommand(char *topic, byte *payload, unsigned int length) {
   }
 
   currentMode = parseMode(document["mode"] | "AUTO");
-  refreshLux();
-  updateLanternState(true, "MODE_CHANGED", "MANUAL_OVERRIDE");
+  readAmbientLux();
+  synchronizeLanternState(true, "MODE_CHANGED", "MANUAL_OVERRIDE");
 }
 
+// Verbindet sich mit dem Broker, abonniert Commands und sendet den aktuellen retained State.
 void ensureMqttConnected() {
   if (mqttClient.connected()) {
     return;
@@ -251,7 +263,7 @@ void ensureMqttConnected() {
   }
 }
 
-void updateAutoModeIfDue() {
+void updateAutoModeFromSensorIfDue() {
   const unsigned long now = millis();
   if (now - lastSensorReadMs < SENSOR_INTERVAL_MS) {
     return;
@@ -259,40 +271,42 @@ void updateAutoModeIfDue() {
 
   lastSensorReadMs = now;
   const LightState previousLightState = currentLightState;
-  const bool hasLux = refreshLux();
+  const bool hasLux = readAmbientLux();
 
   if (currentMode != LanternMode::Auto || !hasLux) {
     return;
   }
 
-  updateLanternState(false, nullptr, nullptr);
+  synchronizeLanternState(false, nullptr, nullptr);
 
   if (currentLightState != previousLightState) {
     Serial.print("AUTO ");
-    Serial.print(lastLux);
+    Serial.print(lastMeasuredLux);
     Serial.print(" lx -> ");
     Serial.println(lightStateToString(currentLightState));
   }
 }
 
+// Sendet regelmaessig den aktuellen Zustand erneut, damit Ausfaelle im Backend auffallen.
 void publishHeartbeatIfDue() {
   const unsigned long now = millis();
   if (now - lastStatePublishMs < STATE_INTERVAL_MS) {
     return;
   }
 
-  refreshLux();
+  readAmbientLux();
   publishState(true);
 }
 }  // namespace
 
+// Initialisiert I2C, PWM-Treiber, Lichtsensor, Wi-Fi und MQTT.
 void setup() {
   Serial.begin(115200);
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 
   pwm.begin();
   pwm.setPWMFreq(PWM_FREQUENCY);
-  setAllLanternChannels(false);
+  setLanternOutputs(false);
 
   lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
 
@@ -302,15 +316,16 @@ void setup() {
   mqttClient.setServer(MQTT_HOST, MQTT_PORT);
   mqttClient.setCallback(handleCommand);
 
-  refreshLux();
-  updateLanternState(false, nullptr, nullptr);
+  readAmbientLux();
+  synchronizeLanternState(false, nullptr, nullptr);
   ensureMqttConnected();
 }
 
+// Haelt Netzwerk, MQTT und den AUTO-Modus dauerhaft aktiv.
 void loop() {
   ensureWifiConnected();
   ensureMqttConnected();
   mqttClient.loop();
-  updateAutoModeIfDue();
+  updateAutoModeFromSensorIfDue();
   publishHeartbeatIfDue();
 }
