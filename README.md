@@ -19,7 +19,7 @@ IoT-Demostadt mit ESP32, MQTT, Spring Boot, Vue und Live-Steuerung ueber das Web
 [![Stars](https://img.shields.io/github/stars/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/stargazers)
 [![Forks](https://img.shields.io/github/forks/fes-wiesbaden/iot-smartown-gruppe-1?style=flat-square)](https://github.com/fes-wiesbaden/iot-smartown-gruppe-1/network/members)
 
-[Überblick](#überblick) • [Einrichtung](#einrichtung) • [Anforderungen](#anforderungen) • [Netzwerk](#netzwerk) • [Vorhandene Hardware](#vorhandene-hardware) • [Muss-Funktionen](#muss-funktionen) • [Meilensteine](#meilensteine) • [Architektur](#architektur-grob) • [Entwicklungsworkflow](#entwicklungsworkflow) • [Entwicklungsregeln Git](#entwicklungsregeln-git) • [Datenfluss](#datenfluss)
+[Demo](#demo) • [Überblick](#überblick) • [Einrichtung](#einrichtung) • [Netzwerk](#netzwerk) • [Architektur](#architektur-grob) • [Entwicklungsworkflow](#entwicklungsworkflow) • [Entwicklungsregeln Git](#entwicklungsregeln-git)
 
 </div>
 
@@ -27,8 +27,8 @@ IoT-Demostadt mit ESP32, MQTT, Spring Boot, Vue und Live-Steuerung ueber das Web
 
 <div align="center">
   <p><strong>Live-Demo</strong></p>
-  <img src="img/livePresentation.gif" alt="Komplette Live-Demo der SmarTown-Weboberfläche als GIF" width="100%" />
-  <p><a href="img/livePresentation.mp4">MP4-Version öffnen</a></p>
+  <p><a href="img/livePresentation.mp4">▶ Demo-Video als MP4 öffnen</a></p>
+  <p><sub>GitHub rendert Repository-Videos in README-Dateien nicht zuverlässig als eingebetteten Player. Das Video ist deshalb direkt verlinkt.</sub></p>
 </div>
 
 <div align="center">
