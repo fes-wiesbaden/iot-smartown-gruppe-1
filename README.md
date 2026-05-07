@@ -27,8 +27,7 @@ IoT-Demostadt mit ESP32, MQTT, Spring Boot, Vue und Live-Steuerung ueber das Web
 
 <div align="center">
   <p><strong>Live-Demo</strong></p>
-  <video src="img/livePresentation.mp4" controls muted playsinline width="900">
-    Dein Browser kann dieses Video nicht direkt anzeigen.
+  <video src="https://github.com/user-attachments/assets/cc608daf-67d7-4f6e-a3fe-bfc2622e0c72" controls muted playsinline width="900">
   </video>
 </div>
 
