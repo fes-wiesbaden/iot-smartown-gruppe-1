@@ -23,6 +23,25 @@ IoT-Demostadt mit ESP32, MQTT, Spring Boot, Vue und Live-Steuerung ueber das Web
 
 </div>
 
+## Demo
+
+<div align="center">
+  <p><strong>Live-Demo</strong></p>
+  <video src="img/livePresentation.mp4" controls muted playsinline width="100%">
+    Dein Browser unterstützt das Video-Tag nicht. Das Video liegt unter <a href="img/livePresentation.mp4">img/livePresentation.mp4</a>.
+  </video>
+</div>
+
+<div align="center">
+  <p><strong>Dashboard</strong></p>
+  <img src="img/Dashboard.png" alt="Dashboard-Übersicht der SmarTown-Weboberfläche" width="100%" />
+</div>
+
+<div align="center">
+  <p><strong>Lux-Chart</strong></p>
+  <img src="img/LuxChart.png" alt="Lux-Verlauf im SmarTown-Dashboard" width="100%" />
+</div>
+
 ## Überblick
 Miniatur-"Smarte Stadt" als IoT-Demomodell. Mehrere Bereiche sind mit Sensoren und Aktoren ausgestattet und werden über eine Weboberfläche überwacht und gesteuert. Ereignisse lösen automatisierte Abläufe aus, einige Funktionen sind zusätzlich manuell schaltbar. Module sind einzeln testbar und laufen am Ende als Gesamtsystem in einer Live-Demo. Das Projekt soll mit Scrum bearbeitet werden.
 
